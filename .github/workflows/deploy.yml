@@ -1,5 +1,15 @@
 name: Deploy Slidev site
 
+# Grant the minimum permissions needed for this workflow to push to the
+# `gh-pages` branch using the built-in GITHUB_TOKEN. If your repository has
+# branch protection rules that prevent the GITHUB_TOKEN from pushing, create
+# a personal access token (PAT) with repo scope and store it in
+# `secrets.GH_PAGES_PAT`, then pass it to the action as `github_token`.
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 on:
   push:
     branches: [ main ]
@@ -29,8 +39,8 @@ jobs:
         run: |
           npx playwright install --with-deps
 
-      - name: Export slides
-        run: npm run export
+      - name: Export slides (with GitHub Pages base)
+        run: npm run export -- --base /Oslo-Toastmaters-Meeting/
 
       - name: Upload export artifact
         if: always()
@@ -44,3 +54,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          publish_branch: gh-pages
