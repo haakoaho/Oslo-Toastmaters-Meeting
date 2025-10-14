@@ -1,19 +1,14 @@
 name: Deploy Slidev site
 
-# Grant the minimum permissions needed for this workflow to push to the
-# `gh-pages` branch using the built-in GITHUB_TOKEN. If your repository has
-# branch protection rules that prevent the GITHUB_TOKEN from pushing, create
-# a personal access token (PAT) with repo scope and store it in
-# `secrets.GH_PAGES_PAT`, then pass it to the action as `github_token`.
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
@@ -31,29 +26,19 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      - name: Install Playwright (Chromium)
-        run: |
-          npm i -D playwright-chromium
+      # ⚙️ Build Slidev slides for GitHub Pages
+      - name: Build Slidev (static site)
+        run: npx slidev build --base /Oslo-Toastmaters-Meeting/
 
-      - name: Install Playwright browsers
-        run: |
-          npx playwright install --with-deps
-
-      - name: Export slides (with GitHub Pages base)
-        run: npm run export -- --base /Oslo-Toastmaters-Meeting/
-
-      - name: Fix exported asset paths for GitHub Pages
-        run: |
-          # Replace the generated "/,./,./,./assets" prefix with the repo base path
-          find dist -type f -exec sed -i 's|/,./,./,./assets|/Oslo-Toastmaters-Meeting/assets|g' {} +
-
-      - name: Upload export artifact
+      # 🧩 Upload the built site as an artifact (optional)
+      - name: Upload build artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: slidev-export
+          name: slidev-build
           path: dist
 
+      # 🚀 Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
