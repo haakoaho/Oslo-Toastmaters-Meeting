@@ -281,7 +281,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -313,7 +313,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -331,7 +331,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -362,7 +362,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -380,7 +380,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -411,7 +411,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -757,7 +757,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 # Best Speaker Voting
@@ -769,7 +769,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 # BREAK
@@ -780,7 +780,7 @@ title: Table Topics - Add Speakers
 style: "background-color: #ADD8E6;"
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -1000,7 +1000,7 @@ title: Speaker Management Tool
 style: "background-color: #ADD8E6;"
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
 <script setup>
 import { ref, onMounted } from 'vue';
@@ -1256,7 +1256,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 # Best Table Topics Voting
@@ -1282,7 +1282,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -1305,7 +1305,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -1328,7 +1328,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 <script setup>
@@ -1679,7 +1679,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="/images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
 # Best Table Topics Voting
