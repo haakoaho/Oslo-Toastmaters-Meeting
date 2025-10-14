@@ -1805,12 +1805,13 @@ class: text-center
 </div>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { onSlideEnter } from '@slidev/client'
 
 const winner = ref('')
-const loading = ref(true)
+const loading = ref(ref(true)) // Set initial value to true
 
-onMounted(async () => {
+const loadWinner = async () => {
   try {
     const response = await fetch('https://script.google.com/macros/s/AKfycbzasaenEuAMB_11pQGr23lHVE_j_VSlhhgITDDReQd2MPQ9C0QfSChmX_5ZLlHoadyu/exec?path=winners')
     const data = await response.json()
@@ -1830,9 +1831,17 @@ onMounted(async () => {
       loading.value = false
     }, 3000)
   } catch (error) {
+    console.error('Error fetching winner:', error)
     winner.value = '⚠️ Error fetching results'
     loading.value = false
   }
+}
+
+// Use onSlideEnter to trigger the loading when the slide is focused
+onSlideEnter(() => {
+  loading.value = true // Reset loading state when entering
+  winner.value = '' // Clear previous winner
+  loadWinner()
 })
 </script>
 
@@ -1873,12 +1882,13 @@ class: text-center
 </div>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { onSlideEnter } from '@slidev/client'
 
 const winner = ref('')
-const loading = ref(true)
+const loading = ref(ref(true)) // Set initial value to true
 
-onMounted(async () => {
+const loadWinner = async () => {
   try {
     const response = await fetch('https://script.google.com/macros/s/AKfycbxUu5xSp9PGSkmJp21XiR6Zh31s_C84S_RqpLunrrqWiGt-AXlg30VBcZz9Ka3SJxUsWw/exec?path=winners')
     const data = await response.json()
@@ -1898,9 +1908,17 @@ onMounted(async () => {
       loading.value = false
     }, 3000)
   } catch (error) {
+    console.error('Error fetching winner:', error)
     winner.value = '⚠️ Error fetching results'
     loading.value = false
   }
+}
+
+// Use onSlideEnter to trigger the loading when the slide is focused
+onSlideEnter(() => {
+  loading.value = true // Reset loading state when entering
+  winner.value = '' // Clear previous winner
+  loadWinner()
 })
 </script>
 
@@ -1941,12 +1959,13 @@ class: text-center
 </div>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { onSlideEnter } from '@slidev/client'
 
 const winner = ref('')
-const loading = ref(true)
+const loading = ref(ref(true)) // Set initial value to true
 
-onMounted(async () => {
+const loadWinner = async () => {
   try {
     const response = await fetch('https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec?path=winners')
     const data = await response.json()
@@ -1966,9 +1985,17 @@ onMounted(async () => {
       loading.value = false
     }, 3000)
   } catch (error) {
+    console.error('Error fetching winner:', error)
     winner.value = '⚠️ Error fetching results'
     loading.value = false
   }
+}
+
+// Use onSlideEnter to trigger the loading when the slide is focused
+onSlideEnter(() => {
+  loading.value = true // Reset loading state when entering
+  winner.value = '' // Clear previous winner
+  loadWinner()
 })
 </script>
 
