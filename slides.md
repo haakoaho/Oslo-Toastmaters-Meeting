@@ -5,7 +5,7 @@ style: "background-color: #ADD8E6;"
 theme: neversink
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 # Oslo Toastmasters Club Meeting
 <br>
@@ -52,7 +52,7 @@ style: "background-color: #ADD8E6;"
 class: "text-center"
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <h1>Guest are requested to register</h1>
 <QRCode class='mx-auto pt-10' value="https://sli.dev" :size="350" render-as="svg" />
@@ -63,7 +63,7 @@ class: "text-center"
 layout: "center"
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -87,7 +87,7 @@ style: "background-color: #00008B"
 class: "text-light"
 ---
 
-<img src ='../images/tmi_logo.png' alt = '' class='float-right' style = 'max-height:75px'>
+<img src ='/tmi_logo.png' alt = '' class='float-right' style = 'max-height:75px'>
 <script setup>
 import { reactive } from 'vue'
 if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
@@ -113,7 +113,7 @@ style: "background-color: #ADD8E6;"
 layout: "center"
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
 # President’s Welcome
@@ -137,7 +137,7 @@ class: 'text-center'
 style: "background-color: #ADD8E6;"
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -158,7 +158,7 @@ layout: "center"
 class: "d-flex flex-column justify-content-start align-items-center h-100"
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -200,7 +200,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -228,7 +228,7 @@ import { reactive } from 'vue'
 if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
 const agenda = window.__SV_AGENDA
 </script>
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 # Grammarian
 
@@ -246,7 +246,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -267,7 +267,7 @@ style: "background-color: #ADD8E6;"
 layout: center
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1268,7 +1268,7 @@ style: "background-color: #ADD8E6;"
 layout: center
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1691,7 +1691,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1711,7 +1711,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1731,7 +1731,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1751,7 +1751,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1771,7 +1771,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>
 import { reactive } from 'vue'
@@ -1791,7 +1791,7 @@ layout: center
 class: text-center
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
 # 🏆 Best Evaluator Award
@@ -1859,7 +1859,7 @@ layout: center
 class: text-center
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
 # 🏆 Best Speaker
@@ -1927,7 +1927,7 @@ layout: center
 class: text-center
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
 # 🏆 Best Table Topcics
@@ -1996,7 +1996,7 @@ layout: statement
 ---
 
 # Oslo Toastmasters Club
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="max-height:400px" class="mx-auto">
 
 ---
@@ -2004,7 +2004,7 @@ style: "background-color: #ADD8E6;"
 layout: statement
 ---
 
-<img src="../images/tmi_logo.png" alt="Logo"
+<img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
 <script setup>
