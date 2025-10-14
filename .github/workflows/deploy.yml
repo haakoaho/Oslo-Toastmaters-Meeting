@@ -42,6 +42,11 @@ jobs:
       - name: Export slides (with GitHub Pages base)
         run: npm run export -- --base /Oslo-Toastmaters-Meeting/
 
+      - name: Fix exported asset paths for GitHub Pages
+        run: |
+          # Replace the generated "/,./,./,./assets" prefix with the repo base path
+          find dist -type f -exec sed -i 's|/,./,./,./assets|/Oslo-Toastmaters-Meeting/assets|g' {} +
+
       - name: Upload export artifact
         if: always()
         uses: actions/upload-artifact@v4
