@@ -26,9 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      # ⚙️ Build Slidev slides for GitHub Pages
+      # ⚙️ Build Slidev slides for GitHub Pages (uses BUILD_BASE via package.json script)
       - name: Build Slidev (static site)
-        run: npx slidev build --base /Oslo-Toastmaters-Meeting/
+        run: npm run build:gh
 
       # 🧩 Upload the built site as an artifact (optional)
       - name: Upload build artifact
