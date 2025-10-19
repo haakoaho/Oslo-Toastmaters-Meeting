@@ -304,8 +304,8 @@ clicks: 20
 
 <div v-else-if="!finished && !showSpeaker" style="display:flex;justify-content:center;align-items:center;height:60vh;">
   <div style="text-align:center;">
-    <h2 style="font-size: 2.5rem; margin-bottom: 2rem;">Feedback QR</h2>
-    <QRCode value="https://docs.google.com/forms/d/e/1FAIpQLSeQPvxKCEb9gPYBypRRQ6hRqs8e5OCXi0hL7RB7yKB51Lsf_g/viewform?usp=header" :size="350" render-as="svg"/>
+    <h2 style="font-size: 2.5rem; margin-bottom: 2rem;">Feedback to Speaker</h2>
+    <QRCode value="https://docs.google.com/forms/d/e/1FAIpQLSeQPvxKCEb9gPYBypRRQ6hRqs8e5OCXi0hL7RB7yKB51Lsf_g/viewform?usp=header" :size="350" render-as="svg" style="margin-bottom:5rem"/>
   </div>
 </div>
 
