@@ -390,7 +390,6 @@ style: "background-color: #ADD8E6;"
 
 <script setup>
 import { ref, onMounted } from 'vue';
-// 🛑 Update this URL for your deployed Google Apps Script
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxUu5xSp9PGSkmJp21XiR6Zh31s_C84S_RqpLunrrqWiGt-AXlg30VBcZz9Ka3SJxUsWw/exec';
 const speakerOptions = ref([]);
 const statusMessage = ref('Loading options...');
@@ -423,7 +422,7 @@ async function fetchOptions() {
     isLoading.value = false;
   }
 }
-/** Disqualify a speaker — remove from list and POST remaining ones */
+/** Disqualify a speaker — fire and forget delete request */
 async function disqualifySpeaker(speaker, event) {
   // Get the position of the clicked button for explosion placement
   const rect = event.target.getBoundingClientRect();
@@ -435,57 +434,31 @@ async function disqualifySpeaker(speaker, event) {
   // Trigger explosion animation
   explodingSpeaker.value = speaker;
  
-  const updatedOptions = speakerOptions.value.filter(s => s !== speaker);
- 
   isLoading.value = true;
   statusMessage.value = `Disqualifying ${speaker}...`;
   statusType.value = 'info';
  
   try {
     // Fire-and-forget POST with no-cors (can't read response)
-    await fetch(ENDPOINT_URL, {
+    fetch(ENDPOINT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ options: updatedOptions }),
+      body: JSON.stringify({ action: 'delete', speaker }),
       mode: 'no-cors'
     });
    
-    // Trust that it worked, wait for explosion animation
+    // Wait for explosion animation
     await new Promise(resolve => setTimeout(resolve, 1200));
    
     // Optimistically update UI
-    speakerOptions.value = updatedOptions;
+    speakerOptions.value = speakerOptions.value.filter(s => s !== speaker);
     explodingSpeaker.value = null;
     statusMessage.value = `Successfully disqualified ${speaker}. 💥`;
     statusType.value = 'success';
    
-    // Verify in background by refetching after a short delay
-    setTimeout(async () => {
-      try {
-        const response = await fetch(`${ENDPOINT_URL}?path=options`);
-        const data = await response.json();
-       
-        if (data.status === 'success' && data.options?.length) {
-          // Check if our update actually worked
-          if (data.options.includes(speaker)) {
-            // Uh oh, speaker is still there - revert UI
-            speakerOptions.value = data.options;
-            statusMessage.value = `⚠️ Disqualification may have failed. Refreshed list.`;
-            statusType.value = 'error';
-          } else {
-            // Success confirmed!
-            speakerOptions.value = data.options;
-          }
-        }
-      } catch (err) {
-        // Verification failed, but don't alarm user
-        console.error('Background verification failed:', err);
-      }
-    }, 2000);
-   
   } catch (error) {
     explodingSpeaker.value = null;
-    statusMessage.value = `POST request error: ${error.message}`;
+    statusMessage.value = `Error disqualifying speaker: ${error.message}`;
     statusType.value = 'error';
   } finally {
     isLoading.value = false;
@@ -646,6 +619,9 @@ onMounted(fetchOptions);
   height: 400px;
   object-fit: contain;
 }
+.speaker-card {
+  transition: all 0.3s ease;
+}
 </style>
 <div class="slidev-layout default">
   <h1 class="text-center">Timer's Report on Speakers</h1>
@@ -664,26 +640,40 @@ onMounted(fetchOptions);
  
   <!-- Speaker List -->
   <template v-if="speakerOptions.length > 0">
-    <div class="mt-8 flex flex-col gap-4 items-center">
+    <div class="mt-8 flex flex-wrap gap-3 justify-center items-stretch" style="max-width: 100%;">
       <div
         v-for="speaker in speakerOptions"
         :key="speaker"
-        class="flex items-center justify-between w-full max-w-2xl p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible"
+        class="flex flex-col items-center justify-between p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible speaker-card"
         :class="{
           'exploding': explodingSpeaker === speaker
         }"
+        :style="{
+          flex: speakerOptions.length <= 4 ? '0 0 calc(50% - 0.75rem)' : '0 0 calc(33.333% - 0.75rem)',
+          minWidth: speakerOptions.length > 6 ? '180px' : '220px',
+          maxWidth: speakerOptions.length <= 2 ? '400px' : speakerOptions.length <= 4 ? '350px' : '300px'
+        }"
       >
-        <span class="text-lg font-semibold">{{ speaker }}</span>
+        <span 
+          class="text-center font-semibold mb-3"
+          :style="{
+            fontSize: speakerOptions.length <= 4 ? '1.25rem' : speakerOptions.length <= 6 ? '1.125rem' : '1rem'
+          }"
+        >{{ speaker }}</span>
         <button
           @click="disqualifySpeaker(speaker, $event)"
           :disabled="isLoading"
-          class="px-6 py-2 rounded-lg text-white font-bold transition duration-150 ease-in-out"
+          class="rounded-lg text-white font-bold transition duration-150 ease-in-out w-full"
           :class="{
             'bg-red-600 hover:bg-red-700': !isLoading,
             'bg-gray-400 cursor-not-allowed': isLoading
           }"
+          :style="{
+            fontSize: speakerOptions.length > 6 ? '0.875rem' : '1rem',
+            padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
+          }"
         >
-          💥 Disqualify
+          💣 Disqualify
         </button>
       </div>
     </div>
@@ -712,8 +702,8 @@ onMounted(fetchOptions);
 </div>
 
 ---
+layout: default
 style: "background-color: #ADD8E6;"
-layout: statement
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
@@ -746,41 +736,14 @@ style: "background-color: #ADD8E6;"
 import { ref, onMounted, reactive } from 'vue';
 if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
 const agenda = window.__SV_AGENDA
-// 🛑 Replace this with your actual Apps Script endpoint
+
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
 
 const tableTopicsSpeakers = ref([]);
 const newSpeaker = ref('');
-const statusMessage = ref('Loading existing Table Topics speakers...');
+const statusMessage = ref('Ready to add speakers');
 const statusType = ref('info');
 const isLoading = ref(false);
-
-/** Fetch current list of Table Topics speakers */
-async function fetchSpeakers() {
-  isLoading.value = true;
-  statusMessage.value = 'Fetching current speakers...';
-  statusType.value = 'info';
-
-  try {
-    const response = await fetch(`${ENDPOINT_URL}?path=options`);
-    const data = await response.json();
-
-    if (data.status === 'success' && Array.isArray(data.options)) {
-      tableTopicsSpeakers.value = data.options;
-      statusMessage.value = 'Speaker list loaded.';
-      statusType.value = 'success';
-    } else {
-      tableTopicsSpeakers.value = [];
-      statusMessage.value = 'No speakers yet.';
-      statusType.value = 'warning';
-    }
-  } catch (err) {
-    statusMessage.value = `Error loading: ${err.message}`;
-    statusType.value = 'error';
-  } finally {
-    isLoading.value = false;
-  }
-}
 
 /** Add a new speaker */
 async function addSpeaker() {
@@ -797,47 +760,56 @@ async function addSpeaker() {
     return;
   }
 
-  tableTopicsSpeakers.value.push(name);
-  newSpeaker.value = '';
-  statusMessage.value = `Added "${name}" locally. Syncing...`;
-  statusType.value = 'info';
   isLoading.value = true;
+  statusMessage.value = `Adding "${name}"...`;
+  statusType.value = 'info';
 
   try {
+    // If this is the first real speaker, remove "No Winner 😈" placeholder
+    const hasPlaceholder = tableTopicsSpeakers.value.includes('No Winner 😈');
+    
+    if (hasPlaceholder) {
+      // Delete placeholder first
+      fetch(ENDPOINT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', speaker: 'No Winner 😈' }),
+        mode: 'no-cors'
+      });
+      
+      // Remove from local array
+      tableTopicsSpeakers.value = tableTopicsSpeakers.value.filter(s => s !== 'No Winner 😈');
+      
+      // Small delay to ensure delete processes first
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    // Add the new speaker
     await fetch(ENDPOINT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ options: tableTopicsSpeakers.value }),
+      body: JSON.stringify({ action: 'add', speaker: name }),
       mode: 'no-cors'
     });
 
-    statusMessage.value = `✅ Added "${name}". (Pending confirmation)`;
+    // Optimistically update UI
+    tableTopicsSpeakers.value.push(name);
+    newSpeaker.value = '';
+    statusMessage.value = `✅ Added "${name}"`;
     statusType.value = 'success';
 
-    // Verify backend consistency in background
-    setTimeout(async () => {
-      try {
-        const response = await fetch(`${ENDPOINT_URL}?path=options`);
-        const data = await response.json();
-        if (data.status === 'success' && Array.isArray(data.options)) {
-          tableTopicsSpeakers.value = data.options;
-          statusMessage.value = 'List verified with backend.';
-          statusType.value = 'success';
-        }
-      } catch (err) {
-        console.warn('Verification failed:', err);
-      }
-    }, 1500);
-
   } catch (err) {
-    statusMessage.value = `POST error: ${err.message}`;
+    statusMessage.value = `Error adding speaker: ${err.message}`;
     statusType.value = 'error';
   } finally {
     isLoading.value = false;
   }
 }
 
-onMounted(fetchSpeakers);
+onMounted(() => {
+  statusMessage.value = 'Ready to add Table Topics speakers';
+  statusType.value = 'info';
+});
 </script>
 
 <style scoped>
@@ -907,6 +879,22 @@ button:disabled {
 .status-success { background: #dcfce7; color: #166534; }
 .status-error { background: #fee2e2; color: #991b1b; }
 .status-warning { background: #fef9c3; color: #854d0e; }
+
+.speakers-list {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.speaker-tag {
+  padding: 0.4rem 0.8rem;
+  background-color: #e0f2fe;
+  color: #075985;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
 </style>
 
 # Table Topics 
@@ -923,7 +911,7 @@ button:disabled {
       <li>🟥 Red Card at 2:00</li>
       <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
     </ul>
-
+  </div>
 
   <!-- Add Speaker Input Section -->
   <div class="input-section">
@@ -932,6 +920,7 @@ button:disabled {
       type="text"
       placeholder="Enter new Table Topics speaker..."
       :disabled="isLoading"
+      @keyup.enter="addSpeaker"
     />
     <button class="add" @click="addSpeaker" :disabled="isLoading">
       ➕ Add Speaker
@@ -950,23 +939,26 @@ button:disabled {
   >
     {{ statusMessage }}
   </div>
-</div>
 
+  <!-- Display added speakers -->
+  <div v-if="tableTopicsSpeakers.length > 0" class="speakers-list">
+    <div v-for="speaker in tableTopicsSpeakers" :key="speaker" class="speaker-tag">
+      {{ speaker }}
+    </div>
+  </div>
 
 ---
 layout: default
-title: Speaker Management Tool
 style: "background-color: #ADD8E6;"
 ---
 
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
 <script setup>
-import { ref, onMounted } from 'vue';
-// 🛑 Update this URL for your deployed Google Apps Script
+import { ref } from 'vue';
+import { onSlideEnter } from '@slidev/client';
+
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
 const speakerOptions = ref([]);
-const statusMessage = ref('Loading options...');
+const statusMessage = ref('Waiting for slide to load...');
 const statusType = ref('info');
 const isLoading = ref(false);
 const explodingSpeaker = ref(null);
@@ -998,139 +990,190 @@ async function fetchOptions() {
   }
 }
 
-/** Disqualify a speaker — remove from list and POST remaining ones */
+/** Disqualify a speaker — fire and forget delete request */
 async function disqualifySpeaker(speaker, event) {
+  // Get the position of the clicked button for explosion placement
   const rect = event.target.getBoundingClientRect();
   explosionPosition.value = {
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2
   };
  
+  // Trigger explosion animation
   explodingSpeaker.value = speaker;
-  const updatedOptions = speakerOptions.value.filter(s => s !== speaker);
  
   isLoading.value = true;
   statusMessage.value = `Disqualifying ${speaker}...`;
   statusType.value = 'info';
  
   try {
-    await fetch(ENDPOINT_URL, {
+    // Fire-and-forget POST with no-cors (can't read response)
+    fetch(ENDPOINT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ options: updatedOptions }),
+      body: JSON.stringify({ action: 'delete', speaker }),
       mode: 'no-cors'
     });
    
+    // Wait for explosion animation
     await new Promise(resolve => setTimeout(resolve, 1200));
    
-    speakerOptions.value = updatedOptions;
+    // Optimistically update UI
+    speakerOptions.value = speakerOptions.value.filter(s => s !== speaker);
     explodingSpeaker.value = null;
     statusMessage.value = `Successfully disqualified ${speaker}. 💥`;
     statusType.value = 'success';
    
-    setTimeout(async () => {
-      try {
-        const response = await fetch(`${ENDPOINT_URL}?path=options`);
-        const data = await response.json();
-        if (data.status === 'success' && data.options?.length) {
-          if (data.options.includes(speaker)) {
-            speakerOptions.value = data.options;
-            statusMessage.value = `⚠️ Disqualification may have failed. Refreshed list.`;
-            statusType.value = 'error';
-          } else {
-            speakerOptions.value = data.options;
-          }
-        }
-      } catch (err) {
-        console.error('Background verification failed:', err);
-      }
-    }, 2000);
   } catch (error) {
     explodingSpeaker.value = null;
-    statusMessage.value = `POST request error: ${error.message}`;
+    statusMessage.value = `Error disqualifying speaker: ${error.message}`;
     statusType.value = 'error';
   } finally {
     isLoading.value = false;
   }
 }
 
-onMounted(fetchOptions);
+// Use onSlideEnter to trigger the loading when the slide is focused
+onSlideEnter(() => {
+  speakerOptions.value = []; // Clear previous speakers
+  fetchOptions();
+});
 </script>
 
 <style scoped>
-/* Keep explosion animations unchanged */
 @keyframes explode {
-  0% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
-  10% { transform: scale(1.1) rotate(-5deg); filter: brightness(2); }
-  30% { transform: scale(1.5) rotate(5deg); opacity: 1; filter: brightness(3) saturate(2); }
-  60% { transform: scale(2.5) rotate(180deg); opacity: 0.6; filter: brightness(5) saturate(3); }
-  100% { transform: scale(5) rotate(720deg); opacity: 0; filter: brightness(0) saturate(0); }
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  10% {
+    transform: scale(1.1) rotate(-5deg);
+    filter: brightness(2);
+  }
+  30% {
+    transform: scale(1.5) rotate(5deg);
+    opacity: 1;
+    filter: brightness(3) saturate(2);
+  }
+  60% {
+    transform: scale(2.5) rotate(180deg);
+    opacity: 0.6;
+    filter: brightness(5) saturate(3);
+  }
+  100% {
+    transform: scale(5) rotate(720deg);
+    opacity: 0;
+    filter: brightness(0) saturate(0);
+  }
 }
 @keyframes shockwave {
-  0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.8); }
-  50% { box-shadow: 0 0 60px 30px rgba(255,255,255,0.4); }
-  100% { box-shadow: 0 0 120px 60px rgba(255,255,255,0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
+                0 0 0 0 rgba(255, 255, 0, 0.8),
+                0 0 0 0 rgba(255, 165, 0, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.4),
+                0 0 80px 40px rgba(255, 255, 0, 0.4),
+                0 0 100px 50px rgba(255, 165, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 120px 60px rgba(255, 255, 255, 0),
+                0 0 160px 80px rgba(255, 255, 0, 0),
+                0 0 200px 100px rgba(255, 165, 0, 0);
+  }
 }
 @keyframes particles {
-  0% { opacity: 1; }
-  100% { opacity: 0; filter: blur(15px); }
+  0% {
+    box-shadow:
+      0 0 20px 10px #ffffff,
+      0 0 20px 10px #ffff00,
+      0 0 20px 10px #ffd700,
+      0 0 20px 10px #ff8c00,
+      0 0 20px 10px #ff4500,
+      0 0 20px 10px #ff0000,
+      0 0 20px 10px #8b0000;
+    filter: blur(0px);
+  }
+  100% {
+    box-shadow:
+      -150px -150px 40px -5px #ffffff,
+      150px -140px 40px -5px #ffff00,
+      -130px 160px 40px -5px #ffd700,
+      140px 150px 40px -5px #ff8c00,
+      0 -180px 40px -5px #ff4500,
+      -170px 50px 40px -5px #ff0000,
+      170px -50px 40px -5px #8b0000,
+      80px 180px 40px -5px #ffa500,
+      -180px -80px 40px -5px #dc143c,
+      100px -170px 40px -5px #ff6347,
+      -160px 120px 40px -5px #ff7f50,
+      160px 80px 40px -5px #ff4500;
+    opacity: 0;
+    filter: blur(15px);
+  }
 }
 @keyframes flash {
-  0%,20%,40%,60%,80%,100% { opacity: 1; }
-  10%,30%,50%,70%,90% { opacity: 0.3; }
+  0%, 20%, 40%, 60%, 80%, 100% {
+    opacity: 1;
+  }
+  10%, 30%, 50%, 70%, 90% {
+    opacity: 0.3;
+  }
 }
 @keyframes textGlitch {
-  0% { transform: translate(0); }
-  100% { transform: translate(0) scale(0); opacity: 0; }
+  0% {
+    transform: translate(0);
+    filter: brightness(1) contrast(1);
+  }
+  20% {
+    transform: translate(-5px, 5px);
+    filter: brightness(2) contrast(1.5);
+  }
+  40% {
+    transform: translate(5px, -5px);
+    filter: brightness(1.5) contrast(1.2);
+  }
+  60% {
+    transform: translate(-5px, -5px);
+    filter: brightness(2.5) contrast(1.8);
+  }
+  80% {
+    transform: translate(5px, 5px);
+    filter: brightness(1.8) contrast(1.4);
+  }
+  100% {
+    transform: translate(0) scale(0);
+    opacity: 0;
+  }
 }
 @keyframes explosionGif {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  10% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
-  90% { opacity: 1; transform: translate(-50%, -50%) scale(3); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(4); }
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(4);
+  }
 }
-
-/* Compact layout for ~8 participants */
-.speaker-list {
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.speaker-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 700px;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  background-color: white;
-  font-size: 0.9rem;
-}
-
-.speaker-item span {
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.speaker-item button {
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-weight: 700;
-}
-
 .exploding {
-  animation: explode 1.2s cubic-bezier(0.36,0,0.66,-0.56) forwards,
-             shockwave 1.2s ease-out forwards,
-             particles 1.2s ease-out forwards,
-             flash 0.4s ease-in-out;
-  background: radial-gradient(circle, #fff 0%, #ffff00 20%, #ff8c00 40%, #ff4500 60%, #ff0000 80%, #8b0000 100%) !important;
+  animation:
+    explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
+    shockwave 1.2s ease-out forwards,
+    particles 1.2s ease-out forwards,
+    flash 0.4s ease-in-out;
+  background:
+    radial-gradient(circle, #fff 0%, #ffff00 20%, #ff8c00 40%, #ff4500 60%, #ff0000 80%, #8b0000 100%) !important;
   border-color: transparent !important;
   z-index: 1000;
   position: relative;
@@ -1146,18 +1189,21 @@ onMounted(fetchOptions);
   animation: explosionGif 1.2s ease-out forwards;
 }
 .explosion-overlay img {
-  width: 250px;
-  height: 250px;
+  width: 400px;
+  height: 400px;
   object-fit: contain;
+}
+.speaker-card {
+  transition: all 0.3s ease;
 }
 </style>
 
 <div class="slidev-layout default">
-  <h1 class="text-center text-2xl font-bold mb-4">Timer's Report on Table Topics</h1>
+  <h1 class="text-center">Timer's Report on Table Topics</h1>
  
   <!-- Status Message -->
   <div
-    class="p-3 rounded-md mt-4 text-sm text-center"
+    class="p-4 rounded-md mt-6"
     :class="{
       'bg-blue-100 text-blue-800': statusType === 'info',
       'bg-green-100 text-green-800': statusType === 'success',
@@ -1169,20 +1215,37 @@ onMounted(fetchOptions);
  
   <!-- Speaker List -->
   <template v-if="speakerOptions.length > 0">
-    <div class="speaker-list">
+    <div class="mt-8 flex flex-wrap gap-3 justify-center items-stretch" style="max-width: 100%;">
       <div
         v-for="speaker in speakerOptions"
         :key="speaker"
-        class="speaker-item"
-        :class="{ 'exploding': explodingSpeaker === speaker }"
+        class="flex flex-col items-center justify-between p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible speaker-card"
+        :class="{
+          'exploding': explodingSpeaker === speaker
+        }"
+        :style="{
+          flex: speakerOptions.length <= 4 ? '0 0 calc(50% - 0.75rem)' : '0 0 calc(33.333% - 0.75rem)',
+          minWidth: speakerOptions.length > 6 ? '180px' : '220px',
+          maxWidth: speakerOptions.length <= 2 ? '400px' : speakerOptions.length <= 4 ? '350px' : '300px'
+        }"
       >
-        <span>{{ speaker }}</span>
+        <span 
+          class="text-center font-semibold mb-3"
+          :style="{
+            fontSize: speakerOptions.length <= 4 ? '1.25rem' : speakerOptions.length <= 6 ? '1.125rem' : '1rem'
+          }"
+        >{{ speaker }}</span>
         <button
           @click="disqualifySpeaker(speaker, $event)"
           :disabled="isLoading"
+          class="rounded-lg text-white font-bold transition duration-150 ease-in-out w-full"
           :class="{
-            'bg-red-600 hover:bg-red-700 text-white': !isLoading,
-            'bg-gray-400 cursor-not-allowed text-white': isLoading
+            'bg-red-600 hover:bg-red-700': !isLoading,
+            'bg-gray-400 cursor-not-allowed': isLoading
+          }"
+          :style="{
+            fontSize: speakerOptions.length > 6 ? '0.875rem' : '1rem',
+            padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
           }"
         >
           💥 Disqualify
@@ -1192,7 +1255,7 @@ onMounted(fetchOptions);
   </template>
  
   <template v-else-if="!isLoading && statusType === 'error'">
-    <p class="mt-8 text-lg text-red-600 text-center">
+    <p class="mt-8 text-xl text-red-600">
       Could not load speaker options. Check your script URL and logs.
     </p>
   </template>
@@ -1201,11 +1264,14 @@ onMounted(fetchOptions);
   <div
     v-if="explodingSpeaker"
     class="explosion-overlay"
-    :style="{ left: explosionPosition.x + 'px', top: explosionPosition.y + 'px' }"
+    :style="{
+      left: explosionPosition.x + 'px',
+      top: explosionPosition.y + 'px'
+    }"
   >
     <img
       src="https://media.giphy.com/media/X92pmIty2ZJp6/giphy.gif"
-      alt="Explosion"
+      alt="Nuclear Explosion"
     />
   </div>
 </div>
@@ -1324,7 +1390,6 @@ style: "background-color: #ADD8E6;"
 
 <script setup>
 import { ref, onMounted } from 'vue';
-// 🛑 Update this URL for your deployed Google Apps Script
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbzasaenEuAMB_11pQGr23lHVE_j_VSlhhgITDDReQd2MPQ9C0QfSChmX_5ZLlHoadyu/exec';
 const speakerOptions = ref([]);
 const statusMessage = ref('Loading options...');
@@ -1357,7 +1422,7 @@ async function fetchOptions() {
     isLoading.value = false;
   }
 }
-/** Disqualify a speaker — remove from list and POST remaining ones */
+/** Disqualify a speaker — fire and forget delete request */
 async function disqualifySpeaker(speaker, event) {
   // Get the position of the clicked button for explosion placement
   const rect = event.target.getBoundingClientRect();
@@ -1369,57 +1434,31 @@ async function disqualifySpeaker(speaker, event) {
   // Trigger explosion animation
   explodingSpeaker.value = speaker;
  
-  const updatedOptions = speakerOptions.value.filter(s => s !== speaker);
- 
   isLoading.value = true;
   statusMessage.value = `Disqualifying ${speaker}...`;
   statusType.value = 'info';
  
   try {
     // Fire-and-forget POST with no-cors (can't read response)
-    await fetch(ENDPOINT_URL, {
+    fetch(ENDPOINT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ options: updatedOptions }),
+      body: JSON.stringify({ action: 'delete', speaker }),
       mode: 'no-cors'
     });
    
-    // Trust that it worked, wait for explosion animation
+    // Wait for explosion animation
     await new Promise(resolve => setTimeout(resolve, 1200));
    
     // Optimistically update UI
-    speakerOptions.value = updatedOptions;
+    speakerOptions.value = speakerOptions.value.filter(s => s !== speaker);
     explodingSpeaker.value = null;
     statusMessage.value = `Successfully disqualified ${speaker}. 💥`;
     statusType.value = 'success';
    
-    // Verify in background by refetching after a short delay
-    setTimeout(async () => {
-      try {
-        const response = await fetch(`${ENDPOINT_URL}?path=options`);
-        const data = await response.json();
-       
-        if (data.status === 'success' && data.options?.length) {
-          // Check if our update actually worked
-          if (data.options.includes(speaker)) {
-            // Uh oh, speaker is still there - revert UI
-            speakerOptions.value = data.options;
-            statusMessage.value = `⚠️ Disqualification may have failed. Refreshed list.`;
-            statusType.value = 'error';
-          } else {
-            // Success confirmed!
-            speakerOptions.value = data.options;
-          }
-        }
-      } catch (err) {
-        // Verification failed, but don't alarm user
-        console.error('Background verification failed:', err);
-      }
-    }, 2000);
-   
   } catch (error) {
     explodingSpeaker.value = null;
-    statusMessage.value = `POST request error: ${error.message}`;
+    statusMessage.value = `Error disqualifying speaker: ${error.message}`;
     statusType.value = 'error';
   } finally {
     isLoading.value = false;
@@ -1580,6 +1619,9 @@ onMounted(fetchOptions);
   height: 400px;
   object-fit: contain;
 }
+.speaker-card {
+  transition: all 0.3s ease;
+}
 </style>
 <div class="slidev-layout default">
   <h1 class="text-center">Timer's Report on Evaluators</h1>
@@ -1598,23 +1640,37 @@ onMounted(fetchOptions);
  
   <!-- Speaker List -->
   <template v-if="speakerOptions.length > 0">
-    <div class="mt-8 flex flex-col gap-4 items-center">
+    <div class="mt-8 flex flex-wrap gap-3 justify-center items-stretch" style="max-width: 100%;">
       <div
         v-for="speaker in speakerOptions"
         :key="speaker"
-        class="flex items-center justify-between w-full max-w-2xl p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible"
+        class="flex flex-col items-center justify-between p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible speaker-card"
         :class="{
           'exploding': explodingSpeaker === speaker
         }"
+        :style="{
+          flex: speakerOptions.length <= 4 ? '0 0 calc(50% - 0.75rem)' : '0 0 calc(33.333% - 0.75rem)',
+          minWidth: speakerOptions.length > 6 ? '180px' : '220px',
+          maxWidth: speakerOptions.length <= 2 ? '400px' : speakerOptions.length <= 4 ? '350px' : '300px'
+        }"
       >
-        <span class="text-lg font-semibold">{{ speaker }}</span>
+        <span 
+          class="text-center font-semibold mb-3"
+          :style="{
+            fontSize: speakerOptions.length <= 4 ? '1.25rem' : speakerOptions.length <= 6 ? '1.125rem' : '1rem'
+          }"
+        >{{ speaker }}</span>
         <button
           @click="disqualifySpeaker(speaker, $event)"
           :disabled="isLoading"
-          class="px-6 py-2 rounded-lg text-white font-bold transition duration-150 ease-in-out"
+          class="rounded-lg text-white font-bold transition duration-150 ease-in-out w-full"
           :class="{
             'bg-red-600 hover:bg-red-700': !isLoading,
             'bg-gray-400 cursor-not-allowed': isLoading
+          }"
+          :style="{
+            fontSize: speakerOptions.length > 6 ? '0.875rem' : '1rem',
+            padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
           }"
         >
           💥 Disqualify
