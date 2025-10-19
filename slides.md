@@ -745,8 +745,8 @@ const statusMessage = ref('Ready to add speakers');
 const statusType = ref('info');
 const isLoading = ref(false);
 
-/** Add a new speaker */
-async function addSpeaker() {
+/** Add a new speaker (instant UI, background send) */
+function addSpeaker() {
   const name = newSpeaker.value.trim();
   if (!name) {
     statusMessage.value = 'Please enter a speaker name.';
@@ -760,50 +760,22 @@ async function addSpeaker() {
     return;
   }
 
-  isLoading.value = true;
-  statusMessage.value = `Adding "${name}"...`;
-  statusType.value = 'info';
+  // Optimistic update first
+  tableTopicsSpeakers.value.push(name);
+  newSpeaker.value = '';
+  statusMessage.value = `✅ Added "${name}"`;
+  statusType.value = 'success';
 
-  try {
-    // If this is the first real speaker, remove "No Winner 😈" placeholder
-    const hasPlaceholder = tableTopicsSpeakers.value.includes('No Winner 😈');
-    
-    if (hasPlaceholder) {
-      // Delete placeholder first
-      fetch(ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', speaker: 'No Winner 😈' }),
-        mode: 'no-cors'
-      });
-      
-      // Remove from local array
-      tableTopicsSpeakers.value = tableTopicsSpeakers.value.filter(s => s !== 'No Winner 😈');
-      
-      // Small delay to ensure delete processes first
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-
-    // Add the new speaker
-    await fetch(ENDPOINT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', speaker: name }),
-      mode: 'no-cors'
-    });
-
-    // Optimistically update UI
-    tableTopicsSpeakers.value.push(name);
-    newSpeaker.value = '';
-    statusMessage.value = `✅ Added "${name}"`;
-    statusType.value = 'success';
-
-  } catch (err) {
-    statusMessage.value = `Error adding speaker: ${err.message}`;
-    statusType.value = 'error';
-  } finally {
-    isLoading.value = false;
-  }
+  // Fire and forget background request
+  fetch(ENDPOINT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'add', speaker: name }),
+    mode: 'no-cors'
+  }).catch(() => {
+    statusMessage.value = `⚠️ Could not sync "${name}" with server`;
+    statusType.value = 'warning';
+  });
 }
 
 onMounted(() => {
@@ -898,54 +870,55 @@ button:disabled {
 </style>
 
 # Table Topics 
-<h2 v-if="agenda.value && agenda.value.structured_roles?.TableTopicMaster?.presenter">Table Topics Master: {{ agenda.value.structured_roles?.TableTopicMaster?.presenter || 'TBA' }} </h2>
+<h2 v-if="agenda.value && agenda.value.structured_roles?.TableTopicMaster?.presenter">
+  Table Topics Master: {{ agenda.value.structured_roles?.TableTopicMaster?.presenter || 'TBA' }}
+</h2>
 
-  <!-- Table Topics Rules -->
-  <div class="rules">
-    <h1>Rules 📋</h1>
-    <ul>
-      <li>Max. 30 seconds for thinking</li>
-      <li>Introduction: name - topic - topic - name</li>
-      <li>🟩 Green Card at 1:00</li>
-      <li>🟨 Yellow Card at 1:30</li>
-      <li>🟥 Red Card at 2:00</li>
-      <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
-    </ul>
-  </div>
+<!-- Table Topics Rules -->
+<div class="rules">
+  <h1>Rules 📋</h1>
+  <ul>
+    <li>Max. 30 seconds for thinking</li>
+    <li>Introduction: name - topic - topic - name</li>
+    <li>🟩 Green Card at 1:00</li>
+    <li>🟨 Yellow Card at 1:30</li>
+    <li>🟥 Red Card at 2:00</li>
+    <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
+  </ul>
+</div>
 
-  <!-- Add Speaker Input Section -->
-  <div class="input-section">
-    <input
-      v-model="newSpeaker"
-      type="text"
-      placeholder="Enter new Table Topics speaker..."
-      :disabled="isLoading"
-      @keyup.enter="addSpeaker"
-    />
-    <button class="add" @click="addSpeaker" :disabled="isLoading">
-      ➕ Add Speaker
-    </button>
-  </div>
+<!-- Add Speaker Input Section -->
+<div class="input-section">
+  <input
+    v-model="newSpeaker"
+    type="text"
+    placeholder="Enter new Table Topics speaker..."
+    @keyup.enter="addSpeaker"
+  />
+  <button class="add" @click="addSpeaker">
+    ➕ Add Speaker
+  </button>
+</div>
 
-  <!-- Status Message -->
-  <div
-    class="status-box"
-    :class="{
-      'status-info': statusType === 'info',
-      'status-success': statusType === 'success',
-      'status-error': statusType === 'error',
-      'status-warning': statusType === 'warning'
-    }"
-  >
-    {{ statusMessage }}
-  </div>
+<!-- Status Message -->
+<div
+  class="status-box"
+  :class="{
+    'status-info': statusType === 'info',
+    'status-success': statusType === 'success',
+    'status-error': statusType === 'error',
+    'status-warning': statusType === 'warning'
+  }"
+>
+  {{ statusMessage }}
+</div>
 
-  <!-- Display added speakers -->
-  <div v-if="tableTopicsSpeakers.length > 0" class="speakers-list">
-    <div v-for="speaker in tableTopicsSpeakers" :key="speaker" class="speaker-tag">
-      {{ speaker }}
-    </div>
+<!-- Display added speakers -->
+<div v-if="tableTopicsSpeakers.length > 0" class="speakers-list">
+  <div v-for="speaker in tableTopicsSpeakers" :key="speaker" class="speaker-tag">
+    {{ speaker }}
   </div>
+</div>
 
 ---
 layout: default
