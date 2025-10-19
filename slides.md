@@ -359,11 +359,10 @@ const resetToStart = () => {
 // Auto-advance when past the last speaker
 watch(() => $clicks.value, (newClicks) => {
   if (speakers.value.length > 0 && newClicks > totalClicks.value) {
-    setTimeout(() => {
-      if ($slidev?.nav?.next) {
-        $slidev.nav.next()
-      }
-    }, 0)
+    // Keep auto-advancing until we leave this slide
+    if ($slidev?.nav?.next) {
+      $slidev.nav.next()
+    }
   }
 })
 
@@ -383,121 +382,6 @@ const currentSpeaker = computed(() => speakers.value[speakerIndex.value] || {})
 
 const finished = computed(() => speakerIndex.value >= speakers.value.length)
 </script>
-
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
-
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
-
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-# Feedback to Speaker
-
-<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSeQPvxKCEb9gPYBypRRQ6hRqs8e5OCXi0hL7RB7yKB51Lsf_g/viewform?usp=header" :size="350" render-as="svg" />
-
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
-
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;" />
-
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-<div v-if="agenda.value && agenda.value.speakers?.[1]">
-  <div style="position: absolute; top: 1rem;">
-    Evaluator: {{ agenda.value.speakers[1].evaluator || 'TBA' }}
-  </div>
-
-  # “{{ agenda.value.speakers[1].title }}”
-  ### by {{ agenda.value.speakers[1].name }}
-
-  <div style="position: absolute; right: 1rem; top: 1rem;">
-    {{ agenda.value.speakers[1].project }} 
-
-    {{ agenda.value.speakers[1].description }}
-
-{{ agenda.value.speakers[1].duration_green }} - {{agenda.value.speakers[1].duration_red }}
-  </div>
-</div>
-
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
-
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
-
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-# Feedback to Speaker
-
-<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSeQPvxKCEb9gPYBypRRQ6hRqs8e5OCXi0hL7RB7yKB51Lsf_g/viewform?usp=header" :size="350" render-as="svg" />
-
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
-
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;" />
-
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-<div v-if="agenda.value && agenda.value.speakers?.[2]">
-  <div style="position: absolute; top: 1rem;">
-    Evaluator: {{ agenda.value.speakers[2].evaluator || 'TBA' }}
-  </div>
-
-  # “{{ agenda.value.speakers[2].title }}”
-  ### by {{ agenda.value.speakers[2].name }}
-
-  <div style="position: absolute; right: 1rem; top: 1rem;">
-    {{ agenda.value.speakers[2].project }} 
-
-    {{ agenda.value.speakers[2].description }}
-
-{{ agenda.value.speakers[2].duration_green }} - {{agenda.value.speakers[2].duration_red }}
-  </div>
-</div>
-
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
-
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
-
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-# Feedback to Speaker
-
-<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSeQPvxKCEb9gPYBypRRQ6hRqs8e5OCXi0hL7RB7yKB51Lsf_g/viewform?usp=header" :size="350" render-as="svg" />
 
 ---
 layout: default
@@ -1353,73 +1237,85 @@ const agenda = window.__SV_AGENDA
 # Speech Evaluation Contest
 
 ---
-style: "background-color: #ADD8E6;"
 layout: statement
+style: "background-color: #ADD8E6;"
+clicks: 20
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
+     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-<div v-if="agenda.value && agenda.value.speakers?.[0]">
+<div v-if="!finished">
   <div style="position: absolute; right: 1rem; top: 1rem;">
     2:00 – 3:00
   </div>
-
-  # {{ agenda.value.speakers[0].evaluator || 'Evaluator TBA' }}
-  ### Evaluating {{ agenda.value.speakers[0].name }}
+  
+  # {{ currentSpeaker.evaluator || 'Evaluator TBA' }}
+  ### Evaluating {{ currentSpeaker.name || 'TBA' }}
 </div>
 
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
+<div v-else style="display:flex;justify-content:center;align-items:center;height:60vh;">
+  <h2 style="font-size: 2rem; color: #dc2626;">✅ All evaluations completed. Press → for next slide</h2>
+</div>
 
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
+<div style="position: absolute; bottom: 1rem; left: 1rem;">
+  <button @click="resetToStart" style="padding: 0.5rem 1rem; background-color: #2563eb; color: white; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 0.875rem;">
+    ↺ Reset to Start
+  </button>
+  <span style="margin-left: 1rem; font-size: 0.875rem;">({{ $clicks }}/{{ totalClicks }})</span>
+</div>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
+
+// Initialize global agenda ref
 if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
 const agenda = window.__SV_AGENDA
+
+// Load agenda.json if not already loaded
+if (!agenda.value) {
+  fetch('/agenda.json')
+    .then(r => r.json())
+    .then(data => {
+      agenda.value = data
+      console.log('Loaded agenda:', data)
+    })
+    .catch(err => {
+      console.error('Failed to load agenda.json:', err)
+      agenda.value = { speakers: [] }
+    })
+}
+
+const speakers = computed(() => {
+  const s = agenda.value?.speakers || []
+  console.log('Speakers:', s)
+  return s
+})
+
+// One click per evaluator (simpler than speaker slide)
+const totalClicks = computed(() => speakers.value.length)
+
+const currentSpeaker = computed(() => speakers.value[$clicks.value] || {})
+
+const finished = computed(() => $clicks.value >= speakers.value.length)
+
+// Function to reset to start
+const resetToStart = () => {
+  if ($slidev?.nav?.currentSlideRoute) {
+    $slidev.nav.go($slidev.nav.currentSlideNo, 0)
+  }
+}
+
+// Auto-advance when past the last evaluator - jump immediately
+watch(() => $clicks.value, (newClicks) => {
+  if (speakers.value.length > 0 && newClicks > totalClicks.value) {
+    // Immediately navigate to next slide
+    if ($slidev?.nav?.next) {
+      $slidev.nav.next()
+    }
+  }
+})
 </script>
-
-<div v-if="agenda.value && agenda.value.speakers?.[0]">
-  <div style="position: absolute; right: 1rem; top: 1rem;">
-    2:00 – 3:00
-  </div>
-
-  # {{ agenda.value.speakers[1].evaluator || 'Evaluator TBA' }}
-  ### Evaluating {{ agenda.value.speakers[1].name }}
-</div>
-
----
-style: "background-color: #ADD8E6;"
-layout: statement
----
-
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
-
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-<div v-if="agenda.value && agenda.value.speakers?.[0]">
-  <div style="position: absolute; right: 1rem; top: 1rem;">
-    2:00 – 3:00
-  </div>
-
-  # {{ agenda.value.speakers[2].evaluator|| 'Evaluator TBA' }}
-  ### Evaluating {{ agenda.value.speakers[2].name }}
-</div>
 
 ---
 layout: default
