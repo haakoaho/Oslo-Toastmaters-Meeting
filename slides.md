@@ -211,7 +211,7 @@ const agenda = window.__SV_AGENDA
 # Ah and Vote Counter
 
 <h3 v-if="agenda.value">
- {{ agenda.value.structured_roles?.['Ah&VoteCounter']?.presenter || 'TBA' }}
+ {{ agenda.value.structured_roles?.AhVoteCounter?.presenter || 'TBA' }}
 
 </h3>
 
@@ -233,7 +233,7 @@ const agenda = window.__SV_AGENDA
 # Grammarian
 
 <div v-if="agenda.value">
-<h3> {{ agenda.value.structured_roles?.['Grammarian&WordoftheDay']?.presenter || 'TBA' }}</h3>
+<h3> {{ agenda.value.structured_roles?.GrammarianWordoftheDay?.presenter || 'TBA' }}</h3>
 
 <h2> Word of the Day: {{ agenda.value.meeting_info?.word_of_the_day || 'TBA' }}</h2>
 
@@ -292,7 +292,7 @@ const agenda = window.__SV_AGENDA
 
 <div v-if="agenda.value && agenda.value.speakers?.[0]">
   <div style="position: absolute; top: 1rem;">
-    Evaluator: {{ agenda.value.structured_roles?.['1stEvaluator']?.presenter || 'TBA' }}
+    Evaluator: {{ agenda.value.speakers[0].evaluator || 'TBA' }}
   </div>
 
   # “{{ agenda.value.speakers[0].title }}”
@@ -306,7 +306,6 @@ const agenda = window.__SV_AGENDA
 {{ agenda.value.speakers[0].duration_green }} - {{agenda.value.speakers[0].duration_red }}
   </div>
 </div>
-
 
 ---
 style: "background-color: #ADD8E6;"
@@ -342,7 +341,7 @@ const agenda = window.__SV_AGENDA
 
 <div v-if="agenda.value && agenda.value.speakers?.[1]">
   <div style="position: absolute; top: 1rem;">
-    Evaluator: {{ agenda.value.structured_roles?.['2ndEvaluator']?.presenter || 'TBA' }}
+    Evaluator: {{ agenda.value.speakers[1].evaluator || 'TBA' }}
   </div>
 
   # “{{ agenda.value.speakers[1].title }}”
@@ -390,7 +389,7 @@ const agenda = window.__SV_AGENDA
 </script>
 <div v-if="agenda.value && agenda.value.speakers?.[2]">
   <div style="position: absolute; top: 1rem;">
-    Evaluator: {{ agenda.value.structured_roles?.['3rdEvaluator']?.presenter || 'TBA' }}
+    Evaluator: {{ agenda.value.speakers[2].evaluator || 'TBA' }}
   </div>
 
   # “{{ agenda.value.speakers[2].title }}”
@@ -404,7 +403,6 @@ const agenda = window.__SV_AGENDA
 {{ agenda.value.speakers[2].duration_green }} - {{agenda.value.speakers[2].duration_red }}
   </div>
 </div>
-
 
 ---
 style: "background-color: #ADD8E6;"
@@ -1296,7 +1294,7 @@ const agenda = window.__SV_AGENDA
     2:00 – 3:00
   </div>
 
-  # {{ agenda.value.structured_roles?.['1stEvaluator']?.presenter || 'Evaluator TBA' }}
+  # {{ agenda.value.speakers[0].evaluator || 'Evaluator TBA' }}
   ### Evaluating {{ agenda.value.speakers[0].name }}
 </div>
 
@@ -1319,7 +1317,7 @@ const agenda = window.__SV_AGENDA
     2:00 – 3:00
   </div>
 
-  # {{ agenda.value.structured_roles?.['2ndEvaluator']?.presenter || 'Evaluator TBA' }}
+  # {{ agenda.value.speakers[1].evaluator || 'Evaluator TBA' }}
   ### Evaluating {{ agenda.value.speakers[1].name }}
 </div>
 
@@ -1342,7 +1340,7 @@ const agenda = window.__SV_AGENDA
     2:00 – 3:00
   </div>
 
-  # {{ agenda.value.structured_roles?.['3rdEvaluator']?.presenter || 'Evaluator TBA' }}
+  # {{ agenda.value.speakers[2].evaluator|| 'Evaluator TBA' }}
   ### Evaluating {{ agenda.value.speakers[2].name }}
 </div>
 
@@ -1682,7 +1680,7 @@ layout: statement
 <img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
 
-# Best Table Topics Voting
+# Best Evaluator Voting
 
 <QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSe5CE7i95lf1z67tu31k4FX8TXMhTVSWIesMcFUvbIWovdVqQ/viewform?usp=dialog" :size="350" render-as="svg" />
 
@@ -1742,7 +1740,7 @@ const agenda = window.__SV_AGENDA
 # Ah Counter Report
 
 <h3 v-if="agenda.value">
- {{ agenda.value.structured_roles?.['Ah&VoteCounter']?.presenter || 'TBA' }}
+ {{ agenda.value.structured_roles?.AhVoteCounter?.presenter || 'TBA' }}
 
 </h3>
 
@@ -1762,7 +1760,7 @@ const agenda = window.__SV_AGENDA
 # Grammarian Report
 
 <h3 v-if="agenda.value">
- {{ agenda.value.structured_roles?.['Grammarian&WordoftheDay']?.presenter || 'TBA' }}
+ {{ agenda.value.structured_roles?.GrammarianWordoftheDay?.presenter || 'TBA' }}
 
 </h3>
 
@@ -1789,6 +1787,7 @@ const agenda = window.__SV_AGENDA
 ---
 layout: center
 class: text-center
+style: "background-color: #ADD8E6;"
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
@@ -1866,6 +1865,7 @@ onSlideEnter(() => {
 ---
 layout: center
 class: text-center
+style: "background-color: #ADD8E6;"
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
@@ -1943,6 +1943,7 @@ onSlideEnter(() => {
 ---
 layout: center
 class: text-center
+style: "background-color: #ADD8E6;"
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
