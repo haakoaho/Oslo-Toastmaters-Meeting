@@ -277,35 +277,112 @@ const agenda = window.__SV_AGENDA
 # Prepared Speech Contest
 
 ---
-style: "background-color: #ADD8E6;"
 layout: statement
+style: "background-color: #ADD8E6;"
+clicks: 20
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;" />
+     style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;">
 
-<script setup>
-import { ref } from 'vue'
-if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
-const agenda = window.__SV_AGENDA
-</script>
-
-<div v-if="agenda.value && agenda.value.speakers?.[0]">
-  <div style="position: absolute; top: 1rem;">
-    Evaluator: {{ agenda.value.speakers[0].evaluator || 'TBA' }}
+<div v-if="!finished && showSpeaker">
+  <div style="position: absolute; top: 1rem; left: 1rem;">
+    <span v-if="currentSpeaker.evaluator">Evaluator: {{ currentSpeaker.evaluator }}</span>
   </div>
-
-  # “{{ agenda.value.speakers[0].title }}”
-  ### by {{ agenda.value.speakers[0].name }}
-
-  <div style="position: absolute; right: 1rem; top: 1rem;">
-    {{ agenda.value.speakers[0].project }} 
-
-    {{ agenda.value.speakers[0].description }}
-
-{{ agenda.value.speakers[0].duration_green }} - {{agenda.value.speakers[0].duration_red }}
+  
+  # "{{ currentSpeaker.title || 'Untitled' }}"
+  ### by {{ currentSpeaker.name || 'TBA' }}
+  
+  <div style="position: absolute; right: 1rem; top: 1rem; text-align: right;">
+    <div v-if="currentSpeaker.project">{{ currentSpeaker.project }}</div>
+    <div v-if="currentSpeaker.description">{{ currentSpeaker.description }}</div>
+    <div v-if="currentSpeaker.duration_green && currentSpeaker.duration_red">
+      {{ currentSpeaker.duration_green }} - {{ currentSpeaker.duration_red }}
+    </div>
   </div>
 </div>
+
+<div v-else-if="!finished && !showSpeaker" style="display:flex;justify-content:center;align-items:center;height:60vh;">
+  <div style="text-align:center;">
+    <h2 style="font-size: 2.5rem; margin-bottom: 2rem;">Feedback QR</h2>
+    <QRCode value="https://docs.google.com/forms/d/e/1FAIpQLSeQPvxKCEb9gPYBypRRQ6hRqs8e5OCXi0hL7RB7yKB51Lsf_g/viewform?usp=header" :size="350" render-as="svg"/>
+  </div>
+</div>
+
+<div v-else style="display:flex;justify-content:center;align-items:center;height:60vh;">
+  <h2 style="font-size: 2rem; color: #dc2626;">✅ All speakers completed. Press → for next slide</h2>
+</div>
+
+<div style="position: absolute; bottom: 1rem; left: 1rem;">
+  <button @click="resetToStart" style="padding: 0.5rem 1rem; background-color: #2563eb; color: white; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 0.875rem;">
+    ↺ Reset to Start
+  </button>
+  <span style="margin-left: 1rem; font-size: 0.875rem;">({{ $clicks }}/{{ totalClicks }})</span>
+</div>
+
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+
+// Initialize global agenda ref
+if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
+const agenda = window.__SV_AGENDA
+
+// Load agenda.json if not already loaded
+if (!agenda.value) {
+  fetch('/agenda.json')
+    .then(r => r.json())
+    .then(data => {
+      agenda.value = data
+      console.log('Loaded agenda:', data)
+    })
+    .catch(err => {
+      console.error('Failed to load agenda.json:', err)
+      agenda.value = { speakers: [] }
+    })
+}
+
+const speakers = computed(() => {
+  const s = agenda.value?.speakers || []
+  console.log('Speakers:', s)
+  return s
+})
+
+const totalClicks = computed(() => speakers.value.length * 2)
+
+// Function to reset to start
+const resetToStart = () => {
+  if ($slidev?.nav?.currentSlideRoute) {
+    $slidev.nav.go($slidev.nav.currentSlideNo, 0)
+  }
+}
+
+// Auto-advance when past the last speaker
+watch(() => $clicks.value, (newClicks) => {
+  if (speakers.value.length > 0 && newClicks > totalClicks.value) {
+    setTimeout(() => {
+      if ($slidev?.nav?.next) {
+        $slidev.nav.next()
+      }
+    }, 0)
+  }
+})
+
+const speakerIndex = computed(() => {
+  const idx = Math.floor($clicks.value / 2)
+  console.log('Click:', $clicks.value, 'SpeakerIndex:', idx)
+  return idx
+})
+
+const showSpeaker = computed(() => {
+  const show = $clicks.value % 2 === 0
+  console.log('ShowSpeaker:', show)
+  return show
+})
+
+const currentSpeaker = computed(() => speakers.value[speakerIndex.value] || {})
+
+const finished = computed(() => speakerIndex.value >= speakers.value.length)
+</script>
 
 ---
 style: "background-color: #ADD8E6;"
