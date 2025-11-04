@@ -734,7 +734,6 @@ const tableTopicsSpeakers = ref([]);
 const newSpeaker = ref('');
 const statusMessage = ref('Ready to add speakers');
 const statusType = ref('info');
-const isLoading = ref(false);
 
 /** Add a new speaker (instant UI, background send) */
 function addSpeaker() {
@@ -745,19 +744,13 @@ function addSpeaker() {
     return;
   }
 
-  if (tableTopicsSpeakers.value.includes(name)) {
-    statusMessage.value = `"${name}" is already in the list.`;
-    statusType.value = 'error';
-    return;
-  }
-
-  // Optimistic update first
+  // Optimistic update
   tableTopicsSpeakers.value.push(name);
   newSpeaker.value = '';
-  statusMessage.value = `✅ Added "${name}"`;
+  statusMessage.value = `✅ Current Speaker: "${name}"`;
   statusType.value = 'success';
 
-  // Fire and forget background request
+  // Background sync
   fetch(ENDPOINT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -825,10 +818,6 @@ button.add {
 button.add:hover {
   background-color: #15803d;
 }
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
 
 .status-box {
   margin-top: 1rem;
@@ -843,29 +832,41 @@ button:disabled {
 .status-error { background: #fee2e2; color: #991b1b; }
 .status-warning { background: #fef9c3; color: #854d0e; }
 
-.speakers-list {
-  margin-top: 1.5rem;
+.container {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
 }
 
-.speaker-tag {
-  padding: 0.4rem 0.8rem;
-  background-color: #e0f2fe;
-  color: #075985;
-  border-radius: 0.4rem;
-  font-size: 0.9rem;
-  font-weight: 500;
+.admin-box { }
+
+.speaker-box {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.current-speaker {
+  font-size: 4rem;
+  font-weight: 800;
+  color: #0b3d91;
+}
+
+.no-speaker {
+  font-size: 2rem;
+  opacity: 0.6;
+  font-style: italic;
 }
 </style>
 
-# Table Topics 
+<div class="container">
+<div class="admin-box">
+<h1>Table Topics</h1>
+
 <h2 v-if="agenda.value && agenda.value.structured_roles?.TableTopicMaster?.presenter">
   Table Topics Master: {{ agenda.value.structured_roles?.TableTopicMaster?.presenter || 'TBA' }}
 </h2>
 
-<!-- Table Topics Rules -->
 <div class="rules">
   <h1>Rules 📋</h1>
   <ul>
@@ -878,20 +879,16 @@ button:disabled {
   </ul>
 </div>
 
-<!-- Add Speaker Input Section -->
 <div class="input-section">
   <input
     v-model="newSpeaker"
     type="text"
-    placeholder="Enter new Table Topics speaker..."
+    placeholder="Enter current Table Topics speaker..."
     @keyup.enter="addSpeaker"
   />
-  <button class="add" @click="addSpeaker">
-    ➕ Add Speaker
-  </button>
+  <button class="add" @click="addSpeaker">🎤 Set Speaker</button>
 </div>
 
-<!-- Status Message -->
 <div
   class="status-box"
   :class="{
@@ -903,12 +900,16 @@ button:disabled {
 >
   {{ statusMessage }}
 </div>
+</div>
 
-<!-- Display added speakers -->
-<div v-if="tableTopicsSpeakers.length > 0" class="speakers-list">
-  <div v-for="speaker in tableTopicsSpeakers" :key="speaker" class="speaker-tag">
-    {{ speaker }}
+<div class="speaker-box">
+  <div v-if="tableTopicsSpeakers.length > 0" class="current-speaker">
+    {{ tableTopicsSpeakers[tableTopicsSpeakers.length - 1] }}
   </div>
+  <div v-else class="no-speaker">
+    Waiting for first speaker...
+  </div>
+</div>
 </div>
 
 ---
@@ -1212,7 +1213,7 @@ onSlideEnter(() => {
             padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
           }"
         >
-          💥 Disqualify
+          💣 Disqualify
         </button>
       </div>
     </div>
@@ -1637,7 +1638,7 @@ onMounted(fetchOptions);
             padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
           }"
         >
-          💥 Disqualify
+          💣 Disqualify
         </button>
       </div>
     </div>
@@ -1770,7 +1771,7 @@ if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
 const agenda = window.__SV_AGENDA
 </script>
 
-# Genearal Evaluation
+# General Evaluation
 
 <h3 v-if="agenda.value">
  {{ agenda.value.structured_roles?.['GeneralEvaluator']?.presenter || 'TBA' }}
