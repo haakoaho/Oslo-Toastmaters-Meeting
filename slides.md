@@ -282,27 +282,45 @@ style: "background-color: #ADD8E6;"
 clicks: 20
 ---
 
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 5rem; left: 1rem; max-height: 100px;">
+<img src="/tmi_logo.png" alt="Logo" :style="{ 
+    position: 'absolute', 
+    top: showCustomSlides ? '1rem' : '2rem', 
+    left: '1rem', 
+    'max-height': '100px' 
+  }">
 
-<div v-if="!finished && showSpeaker">
+<div
+  v-show="showCustomSlides"
+>Press Ctrl/Cmd + Shift + F to go to full screen</div>
+
+<div
+  v-if="showCustomSlides"
+  style="display:flex;height:350px"
+>
+  <iframe
+    :src="speakerCustomSlideUrls[speakerIndex]"
+    style="border:0; width:100%; height:100%;"
+    allowfullscreen
+  ></iframe>
+</div>
+
+<div v-else-if="!finished && showSpeaker && !showCustomSlides">
   <div style="position: absolute; top: 1rem; left: 1rem;">
     <span v-if="currentSpeaker.evaluator">Evaluator: {{ currentSpeaker.evaluator }}</span>
-  </div>
+      </div>
   
-  # "{{ currentSpeaker.title || 'Untitled' }}"
-  ### by {{ currentSpeaker.name || 'TBA' }}
+  <h1> {{ currentSpeaker.title || 'Untitled' }} </h1>
+    <h2> by {{ currentSpeaker.name || 'TBA' }} </h2>
   
   <div style="position: absolute; right: 1rem; top: 1rem; text-align: right;">
     <div v-if="currentSpeaker.project">{{ currentSpeaker.project }}</div>
     <div v-if="currentSpeaker.description">{{ currentSpeaker.description }}</div>
-    <div v-if="currentSpeaker.duration_green && currentSpeaker.duration_red">
-      {{ currentSpeaker.duration_green }} - {{ currentSpeaker.duration_red }}
+    <div v-if="currentSpeaker.time">
+      {{ currentSpeaker.time }}
     </div>
   </div>
 </div>
 
-<!-- Fixed QR code section -->
 <div
   v-else-if="!finished && !showSpeaker"
   style="display:flex;justify-content:center;align-items:center;min-height:100%;padding:4rem 0;text-align:center;"
@@ -329,6 +347,14 @@ clicks: 20
   >
     ↺ Reset to Start
   </button>
+
+  <div v-if="showSpeaker"
+    @click="showCustomSlides = !showCustomSlides"
+    style="padding: 0.5rem 1rem; margin-left: 40rem; background-color: #16a34a; color: white; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 0.875rem;float:right"
+  >
+    {{ showCustomSlides ? 'Hide Custom Slides' : 'Show Custom Slides' }}
+  </div>
+
   <span style="margin-left: 1rem; font-size: 0.875rem;">({{ $clicks }}/{{ totalClicks }})</span>
 </div>
 
@@ -353,25 +379,43 @@ if (!agenda.value) {
     })
 }
 
+// Computed speaker list
 const speakers = computed(() => agenda.value?.speakers || [])
 const totalClicks = computed(() => speakers.value.length * 2)
 
+// Reset function
 const resetToStart = () => {
   if ($slidev?.nav?.currentSlideRoute) {
     $slidev.nav.go($slidev.nav.currentSlideNo, 0)
   }
 }
 
+// Core state
+const speakerIndex = computed(() => Math.floor($clicks.value / 2))
+const showSpeaker = computed(() => $clicks.value % 2 === 0)
+const currentSpeaker = computed(() => speakers.value[speakerIndex.value] || {})
+const finished = computed(() => speakerIndex.value >= speakers.value.length)
+
+
+const showCustomSlides = ref(false)
+
+// WATCH: Auto-advance after all click states
 watch(() => $clicks.value, (newClicks) => {
   if (speakers.value.length > 0 && newClicks > totalClicks.value) {
     if ($slidev?.nav?.next) $slidev.nav.next()
   }
 })
 
-const speakerIndex = computed(() => Math.floor($clicks.value / 2))
-const showSpeaker = computed(() => $clicks.value % 2 === 0)
-const currentSpeaker = computed(() => speakers.value[speakerIndex.value] || {})
-const finished = computed(() => speakerIndex.value >= speakers.value.length)
+// 🛑 WATCH: Reset custom slides when moving away from the speaker view (to QR code view) 🛑
+watch(showSpeaker, (newVal) => {
+    // If showSpeaker becomes false (i.e., we moved from click 0 to 1, 2 to 3, etc.)
+    if (!newVal) {
+        showCustomSlides.value = false
+    }
+})
+
+
+const speakerCustomSlideUrls = ["https://docs.google.com/presentation/d/1GVHpI7vKqq0Ziz4Bbl6aGo4eyuXg4-n5n6HRPKO7BJc/embed?start=false&loop=false&slide=id.p1", "https://docs.google.com/presentation/d/1zTeLqJ19cBoJzuwYJFbjbSAJBICR-Ppk7RnwUDnOaWU/embed?start=false&loop=false&slide=id.p1","https://docs.google.com/presentation/d/1qfnXxboqtQQFyoewm_jyxPSMa-icToFPcJDjr6oVRB0/embed?start=false&loop=false&slide=id.p1"];
 </script>
 
 ---
