@@ -114,10 +114,13 @@ layout: "center"
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
+     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;"/>
 
 # President’s Welcome
 
+<div
+  v-show="showCustomSlides"
+>Press Ctrl/Cmd + Shift + F to go to full screen</div>
 <div v-if="agenda.value">
   <h2>{{ agenda.value.structured_roles?.President?.presenter || 'TBA' }}</h2>
 </div>
@@ -125,10 +128,30 @@ layout: "center"
   Upload agenda.json to show the presenter
 </div>
 
+<div
+  v-if="showCustomSlides"
+  style="display:flex;height:350px"
+>
+  <iframe
+   :src="'https://docs.google.com/presentation/d/1gMV5VSF3nZbM1Rv6lb3Wn1sJDkHk3ryNOciZLW6MKP0/embed?start=false&loop=false&slide=id.p1'"
+    style="border:0; width:100%; height:100%;"
+    allowfullscreen/>
+
+</div>
+
+
+  <div 
+    @click="showCustomSlides = !showCustomSlides"
+    style="padding: 0.5rem 1rem; background-color: #16a34a; color: white; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 0.875rem;float:right;position:absolute;bottom:50px;right:50px"
+  >
+    {{ showCustomSlides ? 'Hide Custom Slides' : 'Show Announcements' }}
+  </div>
+
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
-const agenda = window.__SV_AGENDA
+const agenda = window.__SV_AGENDA;
+const showCustomSlides = ref(false);
 </script>
 
 ---
@@ -2171,4 +2194,4 @@ const agenda = window.__SV_AGENDA
 
 <div v-else class="text-sm text-gray-500">
 Upload agenda.json to show next meeting
-</div>
+</div
