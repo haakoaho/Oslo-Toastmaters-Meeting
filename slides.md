@@ -774,6 +774,8 @@ const agenda = window.__SV_AGENDA
 
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
 
+const REGISTRATION_URL = 'https://script.google.com/macros/s/AKfycbzt5y17AZWLcPsPV21lYPbWJubbiGtKa5vb_Qsir8RDJ6EyjJGW-TrYRRzwNmHiWP-s/exec';
+
 const tableTopicsSpeakers = ref([]);
 const newSpeaker = ref('');
 const statusMessage = ref('Ready to add speakers');
@@ -806,6 +808,44 @@ function addSpeaker() {
   });
 }
 
+async function addRandomSpeaker() {
+  try {
+    statusMessage.value = 'Fetching random speaker...';
+    statusType.value = 'info';
+
+    const response = await fetch(REGISTRATION_URL);
+    const data = await response.json();
+    
+    // Extract speaker name from response
+    const speaker = data.selected || data.speaker || data.name;
+    
+    if (!speaker) {
+      statusMessage.value = '⚠️ No speaker data received';
+      statusType.value = 'warning';
+      return;
+    }
+
+    // Optimistic update (same as addSpeaker)
+    tableTopicsSpeakers.value.push(speaker);
+    statusMessage.value = `✅ Random Speaker: "${speaker}"`;
+    statusType.value = 'success';
+
+    // Background sync with backend
+    fetch(ENDPOINT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', speaker: speaker }),
+      mode: 'no-cors'
+    }).catch(() => {
+      statusMessage.value = `⚠️ Could not sync "${speaker}" with server`;
+      statusType.value = 'warning';
+    });
+  } catch (error) {
+    statusMessage.value = '❌ Error fetching random speaker';
+    statusType.value = 'error';
+    console.error('Error:', error);
+  }
+}
 onMounted(() => {
   statusMessage.value = 'Ready to add Table Topics speakers';
   statusType.value = 'info';
@@ -827,7 +867,7 @@ onMounted(() => {
 .rules ul {
   list-style: disc;
   padding-left: 1.5rem;
-  line-height: 1.6;
+  line-height: 0.8;
   font-size: 1rem;
 }
 
@@ -888,6 +928,7 @@ button.add:hover {
   align-items: center;
   justify-content: center;
   text-align: center;
+  flex-direction:column
 }
 
 .current-speaker {
@@ -927,10 +968,12 @@ button.add:hover {
   <input
     v-model="newSpeaker"
     type="text"
-    placeholder="Enter current Table Topics speaker..."
+    placeholder="Speaker"
     @keyup.enter="addSpeaker"
   />
   <button class="add" @click="addSpeaker">🎤 Set Speaker</button>
+
+  <button class="add" @click="addRandomSpeaker">🎲Random Speaker</button>
 </div>
 
 <div
@@ -947,6 +990,8 @@ button.add:hover {
 </div>
 
 <div class="speaker-box">
+<h1>Scan QR Code to join</h1>
+<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog/viewform?usp=dialog" :size="350" render-as="svg" />
   <div v-if="tableTopicsSpeakers.length > 0" class="current-speaker">
     {{ tableTopicsSpeakers[tableTopicsSpeakers.length - 1] }}
   </div>
