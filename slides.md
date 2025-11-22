@@ -772,11 +772,11 @@ import { ref, onMounted, reactive } from 'vue';
 if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
 const agenda = window.__SV_AGENDA
 
-const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
+const VOTING_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
 
 const REGISTRATION_URL = 'https://script.google.com/macros/s/AKfycbzt5y17AZWLcPsPV21lYPbWJubbiGtKa5vb_Qsir8RDJ6EyjJGW-TrYRRzwNmHiWP-s/exec';
 
-const tableTopicsSpeakers = ref([]);
+const currentSpeaker = ref('');
 const newSpeaker = ref('');
 const statusMessage = ref('Ready to add speakers');
 const statusType = ref('info');
@@ -790,14 +790,14 @@ function addSpeaker() {
     return;
   }
 
-  // Optimistic update
-  tableTopicsSpeakers.value.push(name);
+  // Update current speaker and toggle view
+  currentSpeaker.value = name;
   newSpeaker.value = '';
-  statusMessage.value = `✅ Current Speaker: "${name}"`;
+  statusMessage.value = `✅ Speaker Set: "${name}"`;
   statusType.value = 'success';
 
   // Background sync
-  fetch(ENDPOINT_URL, {
+  fetch(VOTING_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'add', speaker: name }),
@@ -815,23 +815,19 @@ async function addRandomSpeaker() {
 
     const response = await fetch(REGISTRATION_URL);
     const data = await response.json();
-    
-    // Extract speaker name from response
     const speaker = data.selected || data.speaker || data.name;
     
-    if (!speaker) {
+   if (!speaker) {
       statusMessage.value = '⚠️ No speaker data received';
       statusType.value = 'warning';
       return;
     }
 
-    // Optimistic update (same as addSpeaker)
-    tableTopicsSpeakers.value.push(speaker);
+    // Update current speaker and toggle view
+    currentSpeaker.value = speaker;
     statusMessage.value = `✅ Random Speaker: "${speaker}"`;
     statusType.value = 'success';
-
-    // Background sync with backend
-    fetch(ENDPOINT_URL, {
+    fetch(VOTING_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'add', speaker: speaker }),
@@ -846,6 +842,11 @@ async function addRandomSpeaker() {
     console.error('Error:', error);
   }
 }
+
+function toggleView() {
+  currentSpeaker.value = '';
+}
+
 onMounted(() => {
   statusMessage.value = 'Ready to add Table Topics speakers';
   statusType.value = 'info';
@@ -903,6 +904,13 @@ button.add:hover {
   background-color: #15803d;
 }
 
+button.toggle {
+  background-color: #2563eb;
+}
+button.toggle:hover {
+  background-color: #1d4ed8;
+}
+
 .status-box {
   margin-top: 1rem;
   padding: 0.6rem 1rem;
@@ -920,31 +928,61 @@ button.add:hover {
   display: flex;
 }
 
-.admin-box { }
+.admin-box {
+  flex: 1;
+}
 
-.speaker-box {
+.registration-box {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  flex-direction:column
+  flex-direction: column;
+}
+
+.speaker-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .current-speaker {
-  font-size: 4rem;
-  font-weight: 800;
-  color: #0b3d91;
+  flex: 1;
+  height: 90vh;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;       /* horizontal center */
+  text-align: center;
+  gap: 6rem;
+  font-size: 3rem;         /* larger name */
+  font-weight: 700;
 }
+
+.current-speaker h2{
+  font-size:1.5rem;
+}
+
 
 .no-speaker {
   font-size: 2rem;
   opacity: 0.6;
   font-style: italic;
 }
+
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
 </style>
 
-<div class="container">
+<div class="container" v-if="currentSpeaker.length==0">
 <div class="admin-box">
 <h1>Table Topics</h1>
 
@@ -973,7 +1011,7 @@ button.add:hover {
   />
   <button class="add" @click="addSpeaker">🎤 Set Speaker</button>
 
-  <button class="add" @click="addRandomSpeaker">🎲Random Speaker</button>
+  <button class="add" @click="addRandomSpeaker">🎲 Random Speaker</button>
 </div>
 
 <div
@@ -989,16 +1027,17 @@ button.add:hover {
 </div>
 </div>
 
-<div class="speaker-box">
-<h1>Scan QR Code to join</h1>
-<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog/viewform?usp=dialog" :size="350" render-as="svg" />
-  <div v-if="tableTopicsSpeakers.length > 0" class="current-speaker">
-    {{ tableTopicsSpeakers[tableTopicsSpeakers.length - 1] }}
-  </div>
-  <div v-else class="no-speaker">
-    Waiting for first speaker...
+<div class="registration-box">
+  <div class="qr-section">
+    <h1>Scan QR Code to join</h1>
+    <QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog/viewform?usp=dialog" :size="350" render-as="svg" />
   </div>
 </div>
+</div>
+<div v-else class="current-speaker">
+    <h1>{{ currentSpeaker }}</h1>
+    <h2>Table Topics Speaker</h2>
+    <button class="toggle" @click="toggleView">👈 Select Next Speaker</button>
 </div>
 
 ---
