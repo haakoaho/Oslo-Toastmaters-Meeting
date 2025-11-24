@@ -2051,7 +2051,7 @@ const loadWinner = async () => {
     // Delay the reveal for suspense
     setTimeout(() => {
       loading.value = false
-    }, 3000)
+    }, 1000)
   } catch (error) {
     console.error('Error fetching winner:', error)
     winner.value = '⚠️ Error fetching results'
@@ -2129,7 +2129,7 @@ const loadWinner = async () => {
     // Delay the reveal for suspense
     setTimeout(() => {
       loading.value = false
-    }, 3000)
+    }, 1000)
   } catch (error) {
     console.error('Error fetching winner:', error)
     winner.value = '⚠️ Error fetching results'
@@ -2194,4 +2194,4 @@ const agenda = window.__SV_AGENDA
 
 <div v-else class="text-sm text-gray-500">
 Upload agenda.json to show next meeting
-</div
+</div>
