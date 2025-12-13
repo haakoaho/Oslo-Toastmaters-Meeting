@@ -402,7 +402,98 @@ layout: default
 style: "background-color: #ADD8E6;"
 ---
 
-<script setup>const agenda = window.__SV_AGENDA</script>
+<img src="/tmi_logo.png" alt="Logo"
+     style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
+
+<script setup>
+import { ref, onMounted, reactive } from 'vue';
+
+if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
+const agenda = window.__SV_AGENDA
+
+const VOTING_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
+const REGISTRATION_URL = 'https://script.google.com/macros/s/AKfycbzt5y17AZWLcPsPV21lYPbWJubbiGtKa5vb_Qsir8RDJ6EyjJGW-TrYRRzwNmHiWP-s/exec';
+
+const currentSpeaker = ref('');
+const newSpeaker = ref('');
+const statusMessage = ref('Ready to add speakers');
+const statusType = ref('info');
+const isBusy = ref(false);
+
+function addSpeaker() {
+  if (isBusy.value) return;
+  isBusy.value = true;
+
+  const name = newSpeaker.value.trim();
+  if (!name) {
+    statusMessage.value = 'Please enter a speaker name.';
+    statusType.value = 'warning';
+    isBusy.value = false;
+    return;
+  }
+
+  currentSpeaker.value = name;
+  newSpeaker.value = '';
+  statusMessage.value = `✅ Speaker Set: "${name}"`;
+  statusType.value = 'success';
+
+  fetch(VOTING_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'add', speaker: name }),
+    mode: 'no-cors'
+  }).finally(() => {
+    isBusy.value = false;
+  });
+}
+
+async function addRandomSpeaker() {
+  if (isBusy.value) return;
+  isBusy.value = true;
+
+  try {
+    statusMessage.value = 'Fetching random speaker...';
+    statusType.value = 'info';
+
+    const response = await fetch(REGISTRATION_URL);
+    const data = await response.json();
+    const speaker = data?.selected || data?.speaker || data?.name;
+
+    if (!speaker) {
+      statusMessage.value = '⚠️ No speaker data received';
+      statusType.value = 'warning';
+      return;
+    }
+
+    currentSpeaker.value = speaker;
+    statusMessage.value = `✅ Random Speaker: "${speaker}"`;
+    statusType.value = 'success';
+
+    await fetch(VOTING_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', speaker }),
+      mode: 'no-cors'
+    });
+
+  } catch (error) {
+    statusMessage.value = '❌ Error fetching random speaker';
+    statusType.value = 'error';
+    console.error(error);
+  } finally {
+    isBusy.value = false;
+  }
+}
+
+function toggleView() {
+  currentSpeaker.value = '';
+}
+
+onMounted(() => {
+  statusMessage.value = 'Ready to add Table Topics speakers';
+  statusType.value = 'info';
+});
+</script>
 
 <style scoped>
 .rules {
@@ -521,7 +612,7 @@ button:disabled {
 }
 </style>
 
-<div class="container" v-if="Array.isArray(currentSpeaker) ? currentSpeaker.length === 0 : true">
+<div class="container" v-if="currentSpeaker.length === 0">
   <div class="admin-box">
     <h1>Table Topics</h1>
     <h2>
@@ -570,7 +661,7 @@ button:disabled {
 
   <div class="registration-box">
     <div class="qr-section">
-      <h1>Scan QR Code to join</h1>
+      <h2>Scan QR Code to join</h2>
       <QRCode
         class="mx-auto pt-10"
         value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog"
@@ -582,7 +673,7 @@ button:disabled {
 </div>
 
 <div v-else class="current-speaker">
-  <h1>{{ (currentSpeaker && (currentSpeaker.name || currentSpeaker)) }}</h1>
+  <h1>{{ currentSpeaker }}</h1>
   <h2>Table Topics Speaker</h2>
   <button class="toggle" @click="toggleView">
     👈 Select Next Speaker
