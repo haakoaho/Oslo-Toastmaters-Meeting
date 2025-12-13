@@ -788,7 +788,7 @@ style: "background-color: #ADD8E6;"
 ---
 
 <img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
+     style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
@@ -803,143 +803,163 @@ const currentSpeaker = ref('');
 const newSpeaker = ref('');
 const statusMessage = ref('Ready to add speakers');
 const statusType = ref('info');
+// 👇 ADDED: State to prevent double-clicking on the Random Speaker button
+const isLoadingRandomSpeaker = ref(false);
 
 /** Add a new speaker (instant UI, background send) */
 function addSpeaker() {
-  const name = newSpeaker.value.trim();
-  if (!name) {
-    statusMessage.value = 'Please enter a speaker name.';
-    statusType.value = 'warning';
-    return;
-  }
+  const name = newSpeaker.value.trim();
+  if (!name) {
+    statusMessage.value = 'Please enter a speaker name.';
+    statusType.value = 'warning';
+    return;
+  }
 
-  // Update current speaker and toggle view
-  currentSpeaker.value = name;
-  newSpeaker.value = '';
-  statusMessage.value = `✅ Speaker Set: "${name}"`;
-  statusType.value = 'success';
+  // Update current speaker and toggle view
+  currentSpeaker.value = name;
+  newSpeaker.value = '';
+  statusMessage.value = `✅ Speaker Set: "${name}"`;
+  statusType.value = 'success';
 
-  // Background sync
-  fetch(VOTING_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'add', speaker: name }),
-    mode: 'no-cors'
-  }).catch(() => {
-    statusMessage.value = `⚠️ Could not sync "${name}" with server`;
-    statusType.value = 'warning';
-  });
+  // Background sync
+  fetch(VOTING_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'add', speaker: name }),
+    mode: 'no-cors'
+  }).catch(() => {
+    statusMessage.value = `⚠️ Could not sync "${name}" with server`;
+    statusType.value = 'warning';
+  });
 }
 
 async function addRandomSpeaker() {
-  try {
-    statusMessage.value = 'Fetching random speaker...';
-    statusType.value = 'info';
+  // 👇 CHECK: Ignore click if already loading
+  if (isLoadingRandomSpeaker.value) {
+    return;
+  }
 
-    const response = await fetch(REGISTRATION_URL);
-    const data = await response.json();
-    const speaker = data.selected || data.speaker || data.name;
-    
-   if (!speaker) {
-      statusMessage.value = '⚠️ No speaker data received';
-      statusType.value = 'warning';
-      return;
-    }
+  // 👇 SET: Start loading state
+  isLoadingRandomSpeaker.value = true;
+  
+  try {
+    statusMessage.value = 'Fetching random speaker...';
+    statusType.value = 'info';
 
-    // Update current speaker and toggle view
-    currentSpeaker.value = speaker;
-    statusMessage.value = `✅ Random Speaker: "${speaker}"`;
-    statusType.value = 'success';
-    fetch(VOTING_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', speaker: speaker }),
-      mode: 'no-cors'
-    }).catch(() => {
-      statusMessage.value = `⚠️ Could not sync "${speaker}" with server`;
-      statusType.value = 'warning';
-    });
-  } catch (error) {
-    statusMessage.value = '❌ Error fetching random speaker';
-    statusType.value = 'error';
-    console.error('Error:', error);
+    const response = await fetch(REGISTRATION_URL);
+    const data = await response.json();
+    const speaker = data.selected || data.speaker || data.name;
+    
+   if (!speaker) {
+      statusMessage.value = '⚠️ No speaker data received';
+      statusType.value = 'warning';
+      return;
+    }
+
+    // Update current speaker and toggle view
+    currentSpeaker.value = speaker;
+    statusMessage.value = `✅ Random Speaker: "${speaker}"`;
+    statusType.value = 'success';
+    fetch(VOTING_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', speaker: speaker }),
+      mode: 'no-cors'
+    }).catch(() => {
+      statusMessage.value = `⚠️ Could not sync "${speaker}" with server`;
+      statusType.value = 'warning';
+    });
+  } catch (error) {
+    statusMessage.value = '❌ Error fetching random speaker';
+    statusType.value = 'error';
+    console.error('Error:', error);
+  } finally {
+    // 👇 RESET: End loading state
+    isLoadingRandomSpeaker.value = false;
   }
 }
 
 function toggleView() {
-  currentSpeaker.value = '';
+  currentSpeaker.value = '';
 }
 
 onMounted(() => {
-  statusMessage.value = 'Ready to add Table Topics speakers';
-  statusType.value = 'info';
+  statusMessage.value = 'Ready to add Table Topics speakers';
+  statusType.value = 'info';
 });
 </script>
 
 <style scoped>
 .rules {
-  text-align: left;
-  margin-bottom: 2rem;
+  text-align: left;
+  margin-bottom: 2rem;
 }
 
 .rules h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
 .rules ul {
-  list-style: disc;
-  padding-left: 1.5rem;
-  line-height: 0.8;
-  font-size: 1rem;
+  list-style: disc;
+  padding-left: 1.5rem;
+  line-height: 0.8;
+  font-size: 1rem;
 }
 
 .input-section {
-  margin-top: 2rem;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.75rem;
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 input {
-  width: 250px;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.4rem;
-  font-size: 0.9rem;
+  width: 250px;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
 }
 
 button {
-  font-size: 0.9rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 0.4rem;
-  font-weight: 600;
-  color: #fff;
-  transition: background 0.15s ease-in-out;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.4rem;
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.15s ease-in-out;
 }
 
 button.add {
-  background-color: #16a34a;
+  background-color: #16a34a;
+  width:100px;
+  height:70px;
 }
 button.add:hover {
-  background-color: #15803d;
+  background-color: #15803d;
+}
+/* ADDED: Style for disabled button */
+button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 button.toggle {
-  background-color: #2563eb;
+  background-color: #2563eb;
 }
 button.toggle:hover {
-  background-color: #1d4ed8;
+  background-color: #1d4ed8;
 }
 
 .status-box {
-  margin-top: 1rem;
-  padding: 0.6rem 1rem;
-  border-radius: 0.4rem;
-  font-size: 0.9rem;
-  width: fit-content;
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+  width: fit-content;
 }
 
 .status-info { background: #dbeafe; color: #1e3a8a; }
@@ -948,60 +968,61 @@ button.toggle:hover {
 .status-warning { background: #fef9c3; color: #854d0e; }
 
 .container {
-  display: flex;
+  display: flex;
 }
 
 .admin-box {
-  flex: 1;
+  flex: 1;
 }
 
 .registration-box {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  flex-direction: column;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
 }
 
 .speaker-view {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  flex-direction: column;
-  gap: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .current-speaker {
-  flex: 1;
-  height: 90vh;
+  flex: 1;
+  height: 90vh;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;       /* horizontal center */
-  text-align: center;
-  gap: 6rem;
-  font-size: 3rem;         /* larger name */
-  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;       /* horizontal center */
+  text-align: center;
+  gap: 6rem;
+  font-size: 3rem;         /* larger name */
+  font-weight: 700;
 }
 
 .current-speaker h2{
-  font-size:1.5rem;
+  font-size:1.5rem;
 }
 
 
 .no-speaker {
-  font-size: 2rem;
-  opacity: 0.6;
-  font-style: italic;
+  font-size: 2rem;
+  opacity: 0.6;
+  font-style: italic;
 }
 
 .qr-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom:150px
 }
 </style>
 
@@ -1010,57 +1031,62 @@ button.toggle:hover {
 <h1>Table Topics</h1>
 
 <h2 v-if="agenda.value && agenda.value.structured_roles?.TableTopicMaster?.presenter">
-  Table Topics Master: {{ agenda.value.structured_roles?.TableTopicMaster?.presenter || 'TBA' }}
+  Table Topics Master: {{ agenda.value.structured_roles?.TableTopicMaster?.presenter || 'TBA' }}
 </h2>
 
-<div class="rules">
-  <h1>Rules 📋</h1>
-  <ul>
-    <li>Max. 30 seconds for thinking</li>
-    <li>Introduction: name - topic - topic - name</li>
-    <li>🟩 Green Card at 1:00</li>
-    <li>🟨 Yellow Card at 1:30</li>
-    <li>🟥 Red Card at 2:00</li>
-    <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
-  </ul>
-</div>
 
 <div class="input-section">
-  <input
-    v-model="newSpeaker"
-    type="text"
-    placeholder="Speaker"
-    @keyup.enter="addSpeaker"
-  />
-  <button class="add" @click="addSpeaker">🎤 Set Speaker</button>
+  <input
+    v-model="newSpeaker"
+    type="text"
+    placeholder="Speaker"
+    @keyup.enter="addSpeaker"
+  />
+  <button class="add" @click="addSpeaker">🎤 Set Speaker</button>
 
-  <button class="add" @click="addRandomSpeaker">🎲 Random Speaker</button>
+    <button class="add" @click="addRandomSpeaker" :disabled="isLoadingRandomSpeaker">
+    <span v-if="isLoadingRandomSpeaker">... Loading</span>
+    <span v-else>🎲 Random Speaker</span>
+  </button>
 </div>
 
+<div class="rules">
+  <h1>Rules 📋</h1>
+  <ul>
+    <li>Max. 30 seconds for thinking</li>
+    <li>Introduction: name - topic - topic - name</li>
+    <li>🟩 Green Card at 1:00</li>
+    <li>🟨 Yellow Card at 1:30</li>
+    <li>🟥 Red Card at 2:00</li>
+    <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
+  </ul>
+</div>
+
+
 <div
-  class="status-box"
-  :class="{
-    'status-info': statusType === 'info',
-    'status-success': statusType === 'success',
-    'status-error': statusType === 'error',
-    'status-warning': statusType === 'warning'
-  }"
+  class="status-box"
+  :class="{
+    'status-info': statusType === 'info',
+    'status-success': statusType === 'success',
+    'status-error': statusType === 'error',
+    'status-warning': statusType === 'warning'
+  }"
 >
-  {{ statusMessage }}
+  {{ statusMessage }}
 </div>
 </div>
 
 <div class="registration-box">
-  <div class="qr-section">
-    <h1>Scan QR Code to join</h1>
-    <QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog/viewform?usp=dialog" :size="350" render-as="svg" />
-  </div>
+  <div class="qr-section">
+    <h1>Scan QR Code to join</h1>
+    <QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog/viewform?usp=dialog" :size="350" render-as="svg" />
+  </div>
 </div>
 </div>
 <div v-else class="current-speaker">
-    <h1>{{ currentSpeaker }}</h1>
-    <h2>Table Topics Speaker</h2>
-    <button class="toggle" @click="toggleView">👈 Select Next Speaker</button>
+    <h1>{{ currentSpeaker }}</h1>
+    <h2>Table Topics Speaker</h2>
+    <button class="toggle" @click="toggleView">👈 Select Next Speaker</button>
 </div>
 
 ---
