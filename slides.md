@@ -169,7 +169,7 @@ class: "d-flex flex-column justify-content-start align-items-center h-100"
 
 - General Evaluator
 - Timer
-- Ah and Vote Counter
+- Ah Counter
 - Grammarian
 
 ---
@@ -198,15 +198,15 @@ layout: statement
      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 <script setup>const agenda = window.__SV_AGENDA</script>
 
-# Ah and Vote Counter
+# Ah Counter
 
 <h3 v-if="agenda.value">
  {{ agenda.value.structured_roles?.AhVoteCounter?.presenter || 'TBA' }}
 
 </h3>
 
-**Ah-Counter:** listens for filler words.  
-**Vote Counter:** ensures fair voting and recognition & has tie breaker vote.
+**Ah-Counter:** listens for filler words and sounds. 
+**Vote Counter:** has been fully automated. Results will be announced on the slides.
 
 ---
 style: "background-color: #ADD8E6;"
@@ -257,8 +257,14 @@ layout: center
 ---
 layout: statement
 style: "background-color: #ADD8E6;"
-clicks: 20
 ---
+
+<div 
+  v-if="speakers.length" 
+  class="absolute pointer-events-none opacity-0"
+>
+  <span v-for="i in (speakers.length * 2)" :key="i" v-click></span>
+</div>
 
 
 <img src="/tmi_logo.png" alt="Logo" :style="{ 
@@ -268,9 +274,7 @@ clicks: 20
     'max-height': '100px' 
   }">
 
-<div
-  v-show="showCustomSlides"
->Press Ctrl/Cmd + Shift + F to go to full screen</div>
+<div v-show="showCustomSlides">Press Ctrl/Cmd + Shift + F to go to full screen</div>
 
 <div
   v-if="showCustomSlides"
@@ -283,17 +287,18 @@ clicks: 20
   ></iframe>
 </div>
 
-<div v-else-if="!finished && showSpeaker && !showCustomSlides">
+<div v-else-if="!finished && showSpeaker">
   <div style="position: absolute; top: 1rem; left: 1rem;">
     <span v-if="currentSpeaker.evaluator">Evaluator: {{ currentSpeaker.evaluator }}</span>
-      </div>
+  </div>
   
   <h1> {{ currentSpeaker.title || 'Untitled' }} </h1>
-    <h2> by {{ currentSpeaker.name || 'TBA' }} </h2>
+  <h2> by {{ currentSpeaker.name || 'TBA' }} </h2>
   
   <div style="position: absolute; right: 1rem; top: 1rem; text-align: right;">
     <div v-if="currentSpeaker.project">{{ currentSpeaker.project }}</div>
     <div v-if="currentSpeaker.description">{{ currentSpeaker.description }}</div>
+    <div v-if="currentSpeaker.project_description">{{ currentSpeaker.project_description }}</div>
     <div v-if="currentSpeaker.time">
       {{ currentSpeaker.time }}
     </div>
@@ -334,67 +339,63 @@ clicks: 20
     {{ showCustomSlides ? 'Hide Custom Slides' : 'Show Custom Slides' }}
   </div>
 
-  <span style="margin-left: 1rem; font-size: 0.875rem;">({{ $clicks }}/{{ totalClicks }})</span>
+  <span style="margin-left: 1rem; font-size: 0.875rem; opacity: 0.5">
+    ({{ $clicks }}/{{ speakers.length * 2 }})
+  </span>
 </div>
+
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useSlideContext } from '@slidev/client' 
 
-// Initialize global agenda ref
+// FIX: Rename $clicks to clickCount to avoid "Identifier already declared" error
+const { $clicks: clickCount } = useSlideContext()
+
+// --- Data Loading ---
 if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
 const agenda = window.__SV_AGENDA
 
-// Load agenda.json if not already loaded
 if (!agenda.value) {
   fetch('/agenda.json')
     .then(r => r.json())
-    .then(data => {
-      agenda.value = data
-      console.log('Loaded agenda:', data)
-    })
+    .then(data => { agenda.value = data })
     .catch(err => {
-      console.error('Failed to load agenda.json:', err)
+      console.error('Failed to load agenda', err)
       agenda.value = { speakers: [] }
     })
 }
 
-// Computed speaker list
+// --- Computed State ---
 const speakers = computed(() => agenda.value?.speakers || [])
-const totalClicks = computed(() => speakers.value.length * 2)
 
-// Reset function
+// Use clickCount.value (the script version) for logic
+const speakerIndex = computed(() => Math.floor(clickCount.value / 2))
+const showSpeaker = computed(() => clickCount.value % 2 === 0)
+const currentSpeaker = computed(() => speakers.value[speakerIndex.value] || {})
+const finished = computed(() => speakerIndex.value >= speakers.value.length)
+
+const showCustomSlides = ref(false)
+
+// --- Watchers ---
+watch(showSpeaker, (isSpeakerView) => {
+    // Hide custom slides if we move away from the speaker view
+    if (!isSpeakerView) showCustomSlides.value = false
+})
+
+// --- Navigation Helper ---
 const resetToStart = () => {
-  if ($slidev?.nav?.currentSlideRoute) {
+  if ($slidev?.nav) {
     $slidev.nav.go($slidev.nav.currentSlideNo, 0)
   }
 }
 
-// Core state
-const speakerIndex = computed(() => Math.floor($clicks.value / 2))
-const showSpeaker = computed(() => $clicks.value % 2 === 0)
-const currentSpeaker = computed(() => speakers.value[speakerIndex.value] || {})
-const finished = computed(() => speakerIndex.value >= speakers.value.length)
-
-
-const showCustomSlides = ref(false)
-
-// WATCH: Auto-advance after all click states
-watch(() => $clicks.value, (newClicks) => {
-  if (speakers.value.length > 0 && newClicks > totalClicks.value) {
-    if ($slidev?.nav?.next) $slidev.nav.next()
-  }
-})
-
-// 🛑 WATCH: Reset custom slides when moving away from the speaker view (to QR code view) 🛑
-watch(showSpeaker, (newVal) => {
-    // If showSpeaker becomes false (i.e., we moved from click 0 to 1, 2 to 3, etc.)
-    if (!newVal) {
-        showCustomSlides.value = false
-    }
-})
-
-
-const speakerCustomSlideUrls = ["https://docs.google.com/presentation/d/1GVHpI7vKqq0Ziz4Bbl6aGo4eyuXg4-n5n6HRPKO7BJc/embed?start=false&loop=false&slide=id.p1", "https://docs.google.com/presentation/d/1zTeLqJ19cBoJzuwYJFbjbSAJBICR-Ppk7RnwUDnOaWU/embed?start=false&loop=false&slide=id.p1","https://docs.google.com/presentation/d/1qfnXxboqtQQFyoewm_jyxPSMa-icToFPcJDjr6oVRB0/embed?start=false&loop=false&slide=id.p1"];
+// --- Configuration ---
+const speakerCustomSlideUrls = [
+  "https://docs.google.com/presentation/d/1GVHpI7vKqq0Ziz4Bbl6aGo4eyuXg4-n5n6HRPKO7BJc/embed?start=false&loop=false&slide=id.p1", 
+  "https://docs.google.com/presentation/d/1zTeLqJ19cBoJzuwYJFbjbSAJBICR-Ppk7RnwUDnOaWU/embed?start=false&loop=false&slide=id.p1",
+  "https://docs.google.com/presentation/d/1qfnXxboqtQQFyoewm_jyxPSMa-icToFPcJDjr6oVRB0/embed?start=false&loop=false&slide=id.p1"
+];
 </script>
 
 ---
