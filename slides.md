@@ -792,77 +792,81 @@ style: "background-color: #ADD8E6;"
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
+
 if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
 const agenda = window.__SV_AGENDA
 
 const VOTING_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
-
 const REGISTRATION_URL = 'https://script.google.com/macros/s/AKfycbzt5y17AZWLcPsPV21lYPbWJubbiGtKa5vb_Qsir8RDJ6EyjJGW-TrYRRzwNmHiWP-s/exec';
 
 const currentSpeaker = ref('');
 const newSpeaker = ref('');
 const statusMessage = ref('Ready to add speakers');
 const statusType = ref('info');
+const isBusy = ref(false);
 
-/** Add a new speaker (instant UI, background send) */
 function addSpeaker() {
+  if (isBusy.value) return;
+  isBusy.value = true;
+
   const name = newSpeaker.value.trim();
   if (!name) {
     statusMessage.value = 'Please enter a speaker name.';
     statusType.value = 'warning';
+    isBusy.value = false;
     return;
   }
 
-  // Update current speaker and toggle view
   currentSpeaker.value = name;
   newSpeaker.value = '';
   statusMessage.value = `✅ Speaker Set: "${name}"`;
   statusType.value = 'success';
 
-  // Background sync
   fetch(VOTING_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'add', speaker: name }),
     mode: 'no-cors'
-  }).catch(() => {
-    statusMessage.value = `⚠️ Could not sync "${name}" with server`;
-    statusType.value = 'warning';
+  }).finally(() => {
+    isBusy.value = false;
   });
 }
 
 async function addRandomSpeaker() {
+  if (isBusy.value) return;
+  isBusy.value = true;
+
   try {
     statusMessage.value = 'Fetching random speaker...';
     statusType.value = 'info';
 
     const response = await fetch(REGISTRATION_URL);
     const data = await response.json();
-    const speaker = data.selected || data.speaker || data.name;
-    
-   if (!speaker) {
+    const speaker = data?.selected || data?.speaker || data?.name;
+
+    if (!speaker) {
       statusMessage.value = '⚠️ No speaker data received';
       statusType.value = 'warning';
       return;
     }
 
-    // Update current speaker and toggle view
     currentSpeaker.value = speaker;
     statusMessage.value = `✅ Random Speaker: "${speaker}"`;
     statusType.value = 'success';
-    fetch(VOTING_URL, {
+
+    await fetch(VOTING_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', speaker: speaker }),
+      body: JSON.stringify({ action: 'add', speaker }),
       mode: 'no-cors'
-    }).catch(() => {
-      statusMessage.value = `⚠️ Could not sync "${speaker}" with server`;
-      statusType.value = 'warning';
     });
+
   } catch (error) {
     statusMessage.value = '❌ Error fetching random speaker';
     statusType.value = 'error';
-    console.error('Error:', error);
+    console.error(error);
+  } finally {
+    isBusy.value = false;
   }
 }
 
@@ -934,6 +938,11 @@ button.toggle:hover {
   background-color: #1d4ed8;
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .status-box {
   margin-top: 1rem;
   padding: 0.6rem 1rem;
@@ -964,37 +973,20 @@ button.toggle:hover {
   flex-direction: column;
 }
 
-.speaker-view {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  flex-direction: column;
-  gap: 2rem;
-}
-
 .current-speaker {
   flex: 1;
   height: 90vh;
-
   display: flex;
   flex-direction: column;
-  align-items: center;       /* horizontal center */
+  align-items: center;
   text-align: center;
   gap: 6rem;
-  font-size: 3rem;         /* larger name */
+  font-size: 3rem;
   font-weight: 700;
 }
 
-.current-speaker h2{
-  font-size:1.5rem;
-}
-
-
-.no-speaker {
-  font-size: 2rem;
-  opacity: 0.6;
-  font-style: italic;
+.current-speaker h2 {
+  font-size: 1.5rem;
 }
 
 .qr-section {
@@ -1005,63 +997,75 @@ button.toggle:hover {
 }
 </style>
 
-<div class="container" v-if="currentSpeaker.length==0">
-<div class="admin-box">
-<h1>Table Topics</h1>
+<div class="container" v-if="currentSpeaker.length === 0">
+  <div class="admin-box">
+    <h1>Table Topics</h1>
+    <h2>
+      Table Topics Master:
+      {{ agenda.value?.structured_roles?.TableTopicMaster?.presenter ?? 'TBA' }}
+    </h2>
+    <div class="input-section">
+      <input
+        v-model="newSpeaker"
+        type="text"
+        placeholder="Speaker"
+        :disabled="isBusy"
+        @keyup.enter="addSpeaker"
+      />
+      <button class="add" :disabled="isBusy" @click="addSpeaker">
+        🎤 Set Speaker
+      </button>
+      <button class="add" :disabled="isBusy" @click="addRandomSpeaker">
+        🎲 Random Speaker
+      </button>
+    </div>
+    
+  <div class="rules">
+      <h1>Rules 📋</h1>
+      <ul>
+        <li>Max. 30 seconds for thinking</li>
+        <li>Introduction: name - topic - topic - name</li>
+        <li>🟩 Green Card at 1:00</li>
+        <li>🟨 Yellow Card at 1:30</li>
+        <li>🟥 Red Card at 2:00</li>
+        <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
+      </ul>
+    </div>
+  <div
+      class="status-box"
+      :class="{
+        'status-info': statusType === 'info',
+        'status-success': statusType === 'success',
+        'status-error': statusType === 'error',
+        'status-warning': statusType === 'warning'
+      }"
+    >
+      {{ statusMessage }}
+    </div>
+  </div>
 
-<h2 v-if="agenda.value && agenda.value.structured_roles?.TableTopicMaster?.presenter">
-  Table Topics Master: {{ agenda.value.structured_roles?.TableTopicMaster?.presenter || 'TBA' }}
-</h2>
-
-<div class="rules">
-  <h1>Rules 📋</h1>
-  <ul>
-    <li>Max. 30 seconds for thinking</li>
-    <li>Introduction: name - topic - topic - name</li>
-    <li>🟩 Green Card at 1:00</li>
-    <li>🟨 Yellow Card at 1:30</li>
-    <li>🟥 Red Card at 2:00</li>
-    <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
-  </ul>
-</div>
-
-<div class="input-section">
-  <input
-    v-model="newSpeaker"
-    type="text"
-    placeholder="Speaker"
-    @keyup.enter="addSpeaker"
-  />
-  <button class="add" @click="addSpeaker">🎤 Set Speaker</button>
-
-  <button class="add" @click="addRandomSpeaker">🎲 Random Speaker</button>
-</div>
-
-<div
-  class="status-box"
-  :class="{
-    'status-info': statusType === 'info',
-    'status-success': statusType === 'success',
-    'status-error': statusType === 'error',
-    'status-warning': statusType === 'warning'
-  }"
->
-  {{ statusMessage }}
-</div>
-</div>
-
-<div class="registration-box">
-  <div class="qr-section">
-    <h1>Scan QR Code to join</h1>
-    <QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog/viewform?usp=dialog" :size="350" render-as="svg" />
+  <div class="registration-box">
+    <div class="qr-section">
+      <h1>Scan QR Code to join</h1>
+      <QRCode
+        class="mx-auto pt-10"
+        value="https://docs.google.com/forms/d/e/1FAIpQLScgOHxi05FhIkkWsqm2YpaHqu-kPh6dtJvzx7tJdll6Wr68Gw/viewform?usp=dialog"
+        :size="350"
+        render-as="svg"
+      />
+    </div>
   </div>
 </div>
-</div>
+
 <div v-else class="current-speaker">
-    <h1>{{ currentSpeaker }}</h1>
-    <h2>Table Topics Speaker</h2>
-    <button class="toggle" @click="toggleView">👈 Select Next Speaker</button>
+  <h1>{{ currentSpeaker }}</h1>
+  <h2>Table Topics Speaker</h2>
+  <button class="toggle" @click="toggleView">
+    👈 Select Next Speaker
+  </button>
 </div>
+
+
 
 ---
 layout: default
