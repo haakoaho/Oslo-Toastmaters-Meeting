@@ -403,6 +403,347 @@ layout: default
 style: "background-color: #ADD8E6;"
 ---
 
+<script setup>
+import { ref, onMounted } from 'vue';
+const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxUu5xSp9PGSkmJp21XiR6Zh31s_C84S_RqpLunrrqWiGt-AXlg30VBcZz9Ka3SJxUsWw/exec';
+const speakerOptions = ref([]);
+const statusMessage = ref('Loading options...');
+const statusType = ref('info');
+const isLoading = ref(false);
+const explodingSpeaker = ref(null);
+const explosionPosition = ref({ x: 0, y: 0 });
+/** Fetch current list of speakers */
+async function fetchOptions() {
+  isLoading.value = true;
+  statusMessage.value = 'Fetching speaker list...';
+  statusType.value = 'info';
+ 
+  try {
+    const response = await fetch(`${ENDPOINT_URL}?path=options`);
+    const data = await response.json();
+   
+    if (data.status === 'success' && data.options?.length) {
+      speakerOptions.value = data.options;
+      statusMessage.value = 'Options loaded successfully.';
+      statusType.value = 'success';
+    } else {
+      statusMessage.value = data.message || 'No speakers found.';
+      statusType.value = 'error';
+    }
+  } catch (error) {
+    statusMessage.value = `Error fetching data: ${error.message}`;
+    statusType.value = 'error';
+  } finally {
+    isLoading.value = false;
+  }
+}
+/** Disqualify a speaker — fire and forget delete request */
+async function disqualifySpeaker(speaker, event) {
+  // Get the position of the clicked button for explosion placement
+  const rect = event.target.getBoundingClientRect();
+  explosionPosition.value = {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
+ 
+  // Trigger explosion animation
+  explodingSpeaker.value = speaker;
+ 
+  isLoading.value = true;
+  statusMessage.value = `Disqualifying ${speaker}...`;
+  statusType.value = 'info';
+ 
+  try {
+    // Fire-and-forget POST with no-cors (can't read response)
+    fetch(ENDPOINT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', speaker }),
+      mode: 'no-cors'
+    });
+   
+    // Wait for explosion animation
+    await new Promise(resolve => setTimeout(resolve, 1200));
+   
+    // Optimistically update UI
+    speakerOptions.value = speakerOptions.value.filter(s => s !== speaker);
+    explodingSpeaker.value = null;
+    statusMessage.value = `Successfully disqualified ${speaker}. 💥`;
+    statusType.value = 'success';
+   
+  } catch (error) {
+    explodingSpeaker.value = null;
+    statusMessage.value = `Error disqualifying speaker: ${error.message}`;
+    statusType.value = 'error';
+  } finally {
+    isLoading.value = false;
+  }
+}
+onMounted(fetchOptions);
+</script>
+<style scoped>
+@keyframes explode {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  10% {
+    transform: scale(1.1) rotate(-5deg);
+    filter: brightness(2);
+  }
+  30% {
+    transform: scale(1.5) rotate(5deg);
+    opacity: 1;
+    filter: brightness(3) saturate(2);
+  }
+  60% {
+    transform: scale(2.5) rotate(180deg);
+    opacity: 0.6;
+    filter: brightness(5) saturate(3);
+  }
+  100% {
+    transform: scale(5) rotate(720deg);
+    opacity: 0;
+    filter: brightness(0) saturate(0);
+  }
+}
+@keyframes shockwave {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
+                0 0 0 0 rgba(255, 255, 0, 0.8),
+                0 0 0 0 rgba(255, 165, 0, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.4),
+                0 0 80px 40px rgba(255, 255, 0, 0.4),
+                0 0 100px 50px rgba(255, 165, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 120px 60px rgba(255, 255, 255, 0),
+                0 0 160px 80px rgba(255, 255, 0, 0),
+                0 0 200px 100px rgba(255, 165, 0, 0);
+  }
+}
+@keyframes particles {
+  0% {
+    box-shadow:
+      0 0 20px 10px #ffffff,
+      0 0 20px 10px #ffff00,
+      0 0 20px 10px #ffd700,
+      0 0 20px 10px #ff8c00,
+      0 0 20px 10px #ff4500,
+      0 0 20px 10px #ff0000,
+      0 0 20px 10px #8b0000;
+    filter: blur(0px);
+  }
+  100% {
+    box-shadow:
+      -150px -150px 40px -5px #ffffff,
+      150px -140px 40px -5px #ffff00,
+      -130px 160px 40px -5px #ffd700,
+      140px 150px 40px -5px #ff8c00,
+      0 -180px 40px -5px #ff4500,
+      -170px 50px 40px -5px #ff0000,
+      170px -50px 40px -5px #8b0000,
+      80px 180px 40px -5px #ffa500,
+      -180px -80px 40px -5px #dc143c,
+      100px -170px 40px -5px #ff6347,
+      -160px 120px 40px -5px #ff7f50,
+      160px 80px 40px -5px #ff4500;
+    opacity: 0;
+    filter: blur(15px);
+  }
+}
+@keyframes flash {
+  0%, 20%, 40%, 60%, 80%, 100% {
+    opacity: 1;
+  }
+  10%, 30%, 50%, 70%, 90% {
+    opacity: 0.3;
+  }
+}
+@keyframes textGlitch {
+  0% {
+    transform: translate(0);
+    filter: brightness(1) contrast(1);
+  }
+  20% {
+    transform: translate(-5px, 5px);
+    filter: brightness(2) contrast(1.5);
+  }
+  40% {
+    transform: translate(5px, -5px);
+    filter: brightness(1.5) contrast(1.2);
+  }
+  60% {
+    transform: translate(-5px, -5px);
+    filter: brightness(2.5) contrast(1.8);
+  }
+  80% {
+    transform: translate(5px, 5px);
+    filter: brightness(1.8) contrast(1.4);
+  }
+  100% {
+    transform: translate(0) scale(0);
+    opacity: 0;
+  }
+}
+@keyframes explosionGif {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(4);
+  }
+}
+.exploding {
+  animation:
+    explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
+    shockwave 1.2s ease-out forwards,
+    particles 1.2s ease-out forwards,
+    flash 0.4s ease-in-out;
+  background:
+    radial-gradient(circle, #fff 0%, #ffff00 20%, #ff8c00 40%, #ff4500 60%, #ff0000 80%, #8b0000 100%) !important;
+  border-color: transparent !important;
+  z-index: 1000;
+  position: relative;
+}
+.exploding span {
+  animation: textGlitch 0.8s ease-out forwards;
+}
+.explosion-overlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: screen;
+  animation: explosionGif 1.2s ease-out forwards;
+}
+.explosion-overlay img {
+  width: 400px;
+  height: 400px;
+  object-fit: contain;
+}
+.speaker-card {
+  transition: all 0.3s ease;
+}
+</style>
+<div class="slidev-layout default">
+  <h1 class="text-center">Timer's Report on Speakers</h1>
+ 
+  <!-- Status Message -->
+  <div
+    class="p-4 rounded-md mt-6"
+    :class="{
+      'bg-blue-100 text-blue-800': statusType === 'info',
+      'bg-green-100 text-green-800': statusType === 'success',
+      'bg-red-100 text-red-800': statusType === 'error'
+    }"
+  >
+    Status: {{ statusMessage }}
+  </div>
+ 
+  <!-- Speaker List -->
+  <template v-if="speakerOptions.length > 0">
+    <div class="mt-8 flex flex-wrap gap-3 justify-center items-stretch" style="max-width: 100%;">
+      <div
+        v-for="speaker in speakerOptions"
+        :key="speaker"
+        class="flex flex-col items-center justify-between p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible speaker-card"
+        :class="{
+          'exploding': explodingSpeaker === speaker
+        }"
+        :style="{
+          flex: speakerOptions.length <= 4 ? '0 0 calc(50% - 0.75rem)' : '0 0 calc(33.333% - 0.75rem)',
+          minWidth: speakerOptions.length > 6 ? '180px' : '220px',
+          maxWidth: speakerOptions.length <= 2 ? '400px' : speakerOptions.length <= 4 ? '350px' : '300px'
+        }"
+      >
+        <span 
+          class="text-center font-semibold mb-3"
+          :style="{
+            fontSize: speakerOptions.length <= 4 ? '1.25rem' : speakerOptions.length <= 6 ? '1.125rem' : '1rem'
+          }"
+        >{{ speaker }}</span>
+        <button
+          @click="disqualifySpeaker(speaker, $event)"
+          :disabled="isLoading"
+          class="rounded-lg text-white font-bold transition duration-150 ease-in-out w-full"
+          :class="{
+            'bg-red-600 hover:bg-red-700': !isLoading,
+            'bg-gray-400 cursor-not-allowed': isLoading
+          }"
+          :style="{
+            fontSize: speakerOptions.length > 6 ? '0.875rem' : '1rem',
+            padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
+          }"
+        >
+          💣 Disqualify
+        </button>
+      </div>
+    </div>
+  </template>
+ 
+  <template v-else-if="!isLoading && statusType === 'error'">
+    <p class="mt-8 text-xl text-red-600">
+      Could not load speaker options. Check your script URL and logs.
+    </p>
+  </template>
+ 
+  <!-- Explosion GIF Overlay -->
+  <div
+    v-if="explodingSpeaker"
+    class="explosion-overlay"
+    :style="{
+      left: explosionPosition.x + 'px',
+      top: explosionPosition.y + 'px'
+    }"
+  >
+    <img
+      src="https://media.giphy.com/media/X92pmIty2ZJp6/giphy.gif"
+      alt="Nuclear Explosion"
+    />
+  </div>
+</div>
+
+---
+layout: center
+style: "background-color: #ADD8E6;"
+---
+
+<img src="/tmi_logo.png" alt="Logo"
+     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
+
+# Best Speaker Voting
+
+<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSeNybb52ZZ6aE61Yc7DaezGWN7gWP05nQWFbaZpFcoin8QO_Q/viewform?usp=dialog" :size="350" render-as="svg" />
+
+---
+style: "background-color: #ADD8E6;"
+layout: statement
+---
+
+<img src="/tmi_logo.png" alt="Logo"
+     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
+
+# BREAK
+
+
+---
+layout: default
+style: "background-color: #ADD8E6;"
+---
+
 <img src="/tmi_logo.png" alt="Logo"
      style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
 
@@ -681,6 +1022,346 @@ button:disabled {
   </button>
 </div>
 
+---
+layout: default
+style: "background-color: #ADD8E6;"
+---
+
+<script setup>
+import { ref } from 'vue';
+import { onSlideEnter } from '@slidev/client';
+
+const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
+const speakerOptions = ref([]);
+const statusMessage = ref('Waiting for slide to load...');
+const statusType = ref('info');
+const isLoading = ref(false);
+const explodingSpeaker = ref(null);
+const explosionPosition = ref({ x: 0, y: 0 });
+
+/** Fetch current list of speakers */
+async function fetchOptions() {
+  isLoading.value = true;
+  statusMessage.value = 'Fetching speaker list...';
+  statusType.value = 'info';
+ 
+  try {
+    const response = await fetch(`${ENDPOINT_URL}?path=options`);
+    const data = await response.json();
+   
+    if (data.status === 'success' && data.options?.length) {
+      speakerOptions.value = data.options;
+      statusMessage.value = 'Options loaded successfully.';
+      statusType.value = 'success';
+    } else {
+      statusMessage.value = data.message || 'No speakers found.';
+      statusType.value = 'error';
+    }
+  } catch (error) {
+    statusMessage.value = `Error fetching data: ${error.message}`;
+    statusType.value = 'error';
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+/** Disqualify a speaker — fire and forget delete request */
+async function disqualifySpeaker(speaker, event) {
+  // Get the position of the clicked button for explosion placement
+  const rect = event.target.getBoundingClientRect();
+  explosionPosition.value = {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
+ 
+  // Trigger explosion animation
+  explodingSpeaker.value = speaker;
+ 
+  isLoading.value = true;
+  statusMessage.value = `Disqualifying ${speaker}...`;
+  statusType.value = 'info';
+ 
+  try {
+    // Fire-and-forget POST with no-cors (can't read response)
+    fetch(ENDPOINT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', speaker }),
+      mode: 'no-cors'
+    });
+   
+    // Wait for explosion animation
+    await new Promise(resolve => setTimeout(resolve, 1200));
+   
+    // Optimistically update UI
+    speakerOptions.value = speakerOptions.value.filter(s => s !== speaker);
+    explodingSpeaker.value = null;
+    statusMessage.value = `Successfully disqualified ${speaker}. 💥`;
+    statusType.value = 'success';
+   
+  } catch (error) {
+    explodingSpeaker.value = null;
+    statusMessage.value = `Error disqualifying speaker: ${error.message}`;
+    statusType.value = 'error';
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+// Use onSlideEnter to trigger the loading when the slide is focused
+onSlideEnter(() => {
+  speakerOptions.value = []; // Clear previous speakers
+  fetchOptions();
+});
+</script>
+
+<style scoped>
+@keyframes explode {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  10% {
+    transform: scale(1.1) rotate(-5deg);
+    filter: brightness(2);
+  }
+  30% {
+    transform: scale(1.5) rotate(5deg);
+    opacity: 1;
+    filter: brightness(3) saturate(2);
+  }
+  60% {
+    transform: scale(2.5) rotate(180deg);
+    opacity: 0.6;
+    filter: brightness(5) saturate(3);
+  }
+  100% {
+    transform: scale(5) rotate(720deg);
+    opacity: 0;
+    filter: brightness(0) saturate(0);
+  }
+}
+@keyframes shockwave {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
+                0 0 0 0 rgba(255, 255, 0, 0.8),
+                0 0 0 0 rgba(255, 165, 0, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.4),
+                0 0 80px 40px rgba(255, 255, 0, 0.4),
+                0 0 100px 50px rgba(255, 165, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 120px 60px rgba(255, 255, 255, 0),
+                0 0 160px 80px rgba(255, 255, 0, 0),
+                0 0 200px 100px rgba(255, 165, 0, 0);
+  }
+}
+@keyframes particles {
+  0% {
+    box-shadow:
+      0 0 20px 10px #ffffff,
+      0 0 20px 10px #ffff00,
+      0 0 20px 10px #ffd700,
+      0 0 20px 10px #ff8c00,
+      0 0 20px 10px #ff4500,
+      0 0 20px 10px #ff0000,
+      0 0 20px 10px #8b0000;
+    filter: blur(0px);
+  }
+  100% {
+    box-shadow:
+      -150px -150px 40px -5px #ffffff,
+      150px -140px 40px -5px #ffff00,
+      -130px 160px 40px -5px #ffd700,
+      140px 150px 40px -5px #ff8c00,
+      0 -180px 40px -5px #ff4500,
+      -170px 50px 40px -5px #ff0000,
+      170px -50px 40px -5px #8b0000,
+      80px 180px 40px -5px #ffa500,
+      -180px -80px 40px -5px #dc143c,
+      100px -170px 40px -5px #ff6347,
+      -160px 120px 40px -5px #ff7f50,
+      160px 80px 40px -5px #ff4500;
+    opacity: 0;
+    filter: blur(15px);
+  }
+}
+@keyframes flash {
+  0%, 20%, 40%, 60%, 80%, 100% {
+    opacity: 1;
+  }
+  10%, 30%, 50%, 70%, 90% {
+    opacity: 0.3;
+  }
+}
+@keyframes textGlitch {
+  0% {
+    transform: translate(0);
+    filter: brightness(1) contrast(1);
+  }
+  20% {
+    transform: translate(-5px, 5px);
+    filter: brightness(2) contrast(1.5);
+  }
+  40% {
+    transform: translate(5px, -5px);
+    filter: brightness(1.5) contrast(1.2);
+  }
+  60% {
+    transform: translate(-5px, -5px);
+    filter: brightness(2.5) contrast(1.8);
+  }
+  80% {
+    transform: translate(5px, 5px);
+    filter: brightness(1.8) contrast(1.4);
+  }
+  100% {
+    transform: translate(0) scale(0);
+    opacity: 0;
+  }
+}
+@keyframes explosionGif {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(4);
+  }
+}
+.exploding {
+  animation:
+    explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
+    shockwave 1.2s ease-out forwards,
+    particles 1.2s ease-out forwards,
+    flash 0.4s ease-in-out;
+  background:
+    radial-gradient(circle, #fff 0%, #ffff00 20%, #ff8c00 40%, #ff4500 60%, #ff0000 80%, #8b0000 100%) !important;
+  border-color: transparent !important;
+  z-index: 1000;
+  position: relative;
+}
+.exploding span {
+  animation: textGlitch 0.8s ease-out forwards;
+}
+.explosion-overlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: screen;
+  animation: explosionGif 1.2s ease-out forwards;
+}
+.explosion-overlay img {
+  width: 400px;
+  height: 400px;
+  object-fit: contain;
+}
+.speaker-card {
+  transition: all 0.3s ease;
+}
+</style>
+
+<div class="slidev-layout default">
+  <h1 class="text-center">Timer's Report on Table Topics</h1>
+ 
+  <!-- Status Message -->
+  <div
+    class="p-4 rounded-md mt-6"
+    :class="{
+      'bg-blue-100 text-blue-800': statusType === 'info',
+      'bg-green-100 text-green-800': statusType === 'success',
+      'bg-red-100 text-red-800': statusType === 'error'
+    }"
+  >
+    Status: {{ statusMessage }}
+  </div>
+ 
+  <!-- Speaker List -->
+  <template v-if="speakerOptions.length > 0">
+    <div class="mt-8 flex flex-wrap gap-3 justify-center items-stretch" style="max-width: 100%;">
+      <div
+        v-for="speaker in speakerOptions"
+        :key="speaker"
+        class="flex flex-col items-center justify-between p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible speaker-card"
+        :class="{
+          'exploding': explodingSpeaker === speaker
+        }"
+        :style="{
+          flex: speakerOptions.length <= 4 ? '0 0 calc(50% - 0.75rem)' : '0 0 calc(33.333% - 0.75rem)',
+          minWidth: speakerOptions.length > 6 ? '180px' : '220px',
+          maxWidth: speakerOptions.length <= 2 ? '400px' : speakerOptions.length <= 4 ? '350px' : '300px'
+        }"
+      >
+        <span 
+          class="text-center font-semibold mb-3"
+          :style="{
+            fontSize: speakerOptions.length <= 4 ? '1.25rem' : speakerOptions.length <= 6 ? '1.125rem' : '1rem'
+          }"
+        >{{ speaker }}</span>
+        <button
+          @click="disqualifySpeaker(speaker, $event)"
+          :disabled="isLoading"
+          class="rounded-lg text-white font-bold transition duration-150 ease-in-out w-full"
+          :class="{
+            'bg-red-600 hover:bg-red-700': !isLoading,
+            'bg-gray-400 cursor-not-allowed': isLoading
+          }"
+          :style="{
+            fontSize: speakerOptions.length > 6 ? '0.875rem' : '1rem',
+            padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
+          }"
+        >
+          💣 Disqualify
+        </button>
+      </div>
+    </div>
+  </template>
+ 
+  <template v-else-if="!isLoading && statusType === 'error'">
+    <p class="mt-8 text-xl text-red-600">
+      Could not load speaker options. Check your script URL and logs.
+    </p>
+  </template>
+ 
+  <!-- Explosion GIF Overlay -->
+  <div
+    v-if="explodingSpeaker"
+    class="explosion-overlay"
+    :style="{
+      left: explosionPosition.x + 'px',
+      top: explosionPosition.y + 'px'
+    }"
+  >
+    <img
+      src="https://media.giphy.com/media/X92pmIty2ZJp6/giphy.gif"
+      alt="Nuclear Explosion"
+    />
+  </div>
+</div>
+
+---
+style: "background-color: #ADD8E6;"
+layout: statement
+---
+
+<img src="/tmi_logo.png" alt="Logo"
+     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
+
+# Best Table Topics Voting
+
+<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSfFjcZKbUq33UjQ6zihWRROyrE8KKZNjWlVFXostE-j322p4g/viewform?usp=dialog" :size="350" render-as="svg" />
 
 
 ---
@@ -693,19 +1374,25 @@ style: "background-color: #ADD8E6;"
 ---
 layout: statement
 style: "background-color: #ADD8E6;"
-clicks: 20
 ---
 
+<div 
+  v-if="speakers.length" 
+  class="absolute pointer-events-none opacity-0"
+>
+  <span v-for="i in speakers.length" :key="i" v-click></span>
+</div>
+
 <img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
+      style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;">
 
 <div v-if="!finished">
   <div style="position: absolute; right: 1rem; top: 1rem;">
     2:00 – 3:00
   </div>
   
-  # {{ currentSpeaker.evaluator || 'Evaluator TBA' }}
-  ### Evaluating {{ currentSpeaker.name || 'TBA' }}
+  <h1> {{ currentSpeaker.evaluator || 'Evaluator TBA' }} </h1>
+  <h3> Evaluating {{ currentSpeaker.name || 'TBA' }} </h3>
 </div>
 
 <div v-else style="display:flex;justify-content:center;align-items:center;height:60vh;">
@@ -716,60 +1403,380 @@ clicks: 20
   <button @click="resetToStart" style="padding: 0.5rem 1rem; background-color: #2563eb; color: white; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 0.875rem;">
     ↺ Reset to Start
   </button>
-  <span style="margin-left: 1rem; font-size: 0.875rem;">({{ $clicks }}/{{ totalClicks }})</span>
+  
+  <span style="margin-left: 1rem; font-size: 0.875rem; opacity: 0.5">
+    ({{ $clicks }}/{{ speakers.length }})
+  </span>
 </div>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
+import { useSlideContext } from '@slidev/client' 
 
-// Initialize global agenda ref
+// 1. Safe access to click count
+const { $clicks: clickCount } = useSlideContext()
+
+// 2. Data Loading
 if (!window.__SV_AGENDA) window.__SV_AGENDA = ref(null)
 const agenda = window.__SV_AGENDA
 
-// Load agenda.json if not already loaded
 if (!agenda.value) {
   fetch('/agenda.json')
     .then(r => r.json())
-    .then(data => {
-      agenda.value = data
-      console.log('Loaded agenda:', data)
-    })
+    .then(data => { agenda.value = data })
     .catch(err => {
-      console.error('Failed to load agenda.json:', err)
+      console.error('Failed to load agenda', err)
       agenda.value = { speakers: [] }
     })
 }
 
-const speakers = computed(() => {
-  const s = agenda.value?.speakers || []
-  console.log('Speakers:', s)
-  return s
-})
+const speakers = computed(() => agenda.value?.speakers || [])
 
-// One click per evaluator (simpler than speaker slide)
-const totalClicks = computed(() => speakers.value.length)
+// 3. Simple State Logic
+// Use clickCount.value (script) instead of $clicks (template)
+const currentSpeaker = computed(() => speakers.value[clickCount.value] || {})
 
-const currentSpeaker = computed(() => speakers.value[$clicks.value] || {})
+// If we have 3 speakers, valid indices are 0, 1, 2.
+// When clickCount hits 3, we are "finished".
+const finished = computed(() => clickCount.value >= speakers.value.length)
 
-const finished = computed(() => $clicks.value >= speakers.value.length)
-
-// Function to reset to start
 const resetToStart = () => {
-  if ($slidev?.nav?.currentSlideRoute) {
+  if ($slidev?.nav) {
     $slidev.nav.go($slidev.nav.currentSlideNo, 0)
   }
 }
-
-// Auto-advance when past the last evaluator - jump immediately
-watch(() => $clicks.value, (newClicks) => {
-  if (speakers.value.length > 0 && newClicks > totalClicks.value) {
-    // Immediately navigate to next slide
-    if ($slidev?.nav?.next) {
-      $slidev.nav.next()
-    }
-  }
-})
 </script>
+
+---
+layout: default
+style: "background-color: #ADD8E6;"
+---
+
+<script setup>
+import { ref, onMounted } from 'vue';
+const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbzasaenEuAMB_11pQGr23lHVE_j_VSlhhgITDDReQd2MPQ9C0QfSChmX_5ZLlHoadyu/exec';
+const speakerOptions = ref([]);
+const statusMessage = ref('Loading options...');
+const statusType = ref('info');
+const isLoading = ref(false);
+const explodingSpeaker = ref(null);
+const explosionPosition = ref({ x: 0, y: 0 });
+/** Fetch current list of speakers */
+async function fetchOptions() {
+  isLoading.value = true;
+  statusMessage.value = 'Fetching speaker list...';
+  statusType.value = 'info';
+ 
+  try {
+    const response = await fetch(`${ENDPOINT_URL}?path=options`);
+    const data = await response.json();
+   
+    if (data.status === 'success' && data.options?.length) {
+      speakerOptions.value = data.options;
+      statusMessage.value = 'Options loaded successfully.';
+      statusType.value = 'success';
+    } else {
+      statusMessage.value = data.message || 'No speakers found.';
+      statusType.value = 'error';
+    }
+  } catch (error) {
+    statusMessage.value = `Error fetching data: ${error.message}`;
+    statusType.value = 'error';
+  } finally {
+    isLoading.value = false;
+  }
+}
+/** Disqualify a speaker — fire and forget delete request */
+async function disqualifySpeaker(speaker, event) {
+  // Get the position of the clicked button for explosion placement
+  const rect = event.target.getBoundingClientRect();
+  explosionPosition.value = {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
+ 
+  // Trigger explosion animation
+  explodingSpeaker.value = speaker;
+ 
+  isLoading.value = true;
+  statusMessage.value = `Disqualifying ${speaker}...`;
+  statusType.value = 'info';
+ 
+  try {
+    // Fire-and-forget POST with no-cors (can't read response)
+    fetch(ENDPOINT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', speaker }),
+      mode: 'no-cors'
+    });
+   
+    // Wait for explosion animation
+    await new Promise(resolve => setTimeout(resolve, 1200));
+   
+    // Optimistically update UI
+    speakerOptions.value = speakerOptions.value.filter(s => s !== speaker);
+    explodingSpeaker.value = null;
+    statusMessage.value = `Successfully disqualified ${speaker}. 💥`;
+    statusType.value = 'success';
+   
+  } catch (error) {
+    explodingSpeaker.value = null;
+    statusMessage.value = `Error disqualifying speaker: ${error.message}`;
+    statusType.value = 'error';
+  } finally {
+    isLoading.value = false;
+  }
+}
+onMounted(fetchOptions);
+</script>
+<style scoped>
+@keyframes explode {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  10% {
+    transform: scale(1.1) rotate(-5deg);
+    filter: brightness(2);
+  }
+  30% {
+    transform: scale(1.5) rotate(5deg);
+    opacity: 1;
+    filter: brightness(3) saturate(2);
+  }
+  60% {
+    transform: scale(2.5) rotate(180deg);
+    opacity: 0.6;
+    filter: brightness(5) saturate(3);
+  }
+  100% {
+    transform: scale(5) rotate(720deg);
+    opacity: 0;
+    filter: brightness(0) saturate(0);
+  }
+}
+@keyframes shockwave {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
+                0 0 0 0 rgba(255, 255, 0, 0.8),
+                0 0 0 0 rgba(255, 165, 0, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 60px 30px rgba(255, 255, 255, 0.4),
+                0 0 80px 40px rgba(255, 255, 0, 0.4),
+                0 0 100px 50px rgba(255, 165, 0, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 120px 60px rgba(255, 255, 255, 0),
+                0 0 160px 80px rgba(255, 255, 0, 0),
+                0 0 200px 100px rgba(255, 165, 0, 0);
+  }
+}
+@keyframes particles {
+  0% {
+    box-shadow:
+      0 0 20px 10px #ffffff,
+      0 0 20px 10px #ffff00,
+      0 0 20px 10px #ffd700,
+      0 0 20px 10px #ff8c00,
+      0 0 20px 10px #ff4500,
+      0 0 20px 10px #ff0000,
+      0 0 20px 10px #8b0000;
+    filter: blur(0px);
+  }
+  100% {
+    box-shadow:
+      -150px -150px 40px -5px #ffffff,
+      150px -140px 40px -5px #ffff00,
+      -130px 160px 40px -5px #ffd700,
+      140px 150px 40px -5px #ff8c00,
+      0 -180px 40px -5px #ff4500,
+      -170px 50px 40px -5px #ff0000,
+      170px -50px 40px -5px #8b0000,
+      80px 180px 40px -5px #ffa500,
+      -180px -80px 40px -5px #dc143c,
+      100px -170px 40px -5px #ff6347,
+      -160px 120px 40px -5px #ff7f50,
+      160px 80px 40px -5px #ff4500;
+    opacity: 0;
+    filter: blur(15px);
+  }
+}
+@keyframes flash {
+  0%, 20%, 40%, 60%, 80%, 100% {
+    opacity: 1;
+  }
+  10%, 30%, 50%, 70%, 90% {
+    opacity: 0.3;
+  }
+}
+@keyframes textGlitch {
+  0% {
+    transform: translate(0);
+    filter: brightness(1) contrast(1);
+  }
+  20% {
+    transform: translate(-5px, 5px);
+    filter: brightness(2) contrast(1.5);
+  }
+  40% {
+    transform: translate(5px, -5px);
+    filter: brightness(1.5) contrast(1.2);
+  }
+  60% {
+    transform: translate(-5px, -5px);
+    filter: brightness(2.5) contrast(1.8);
+  }
+  80% {
+    transform: translate(5px, 5px);
+    filter: brightness(1.8) contrast(1.4);
+  }
+  100% {
+    transform: translate(0) scale(0);
+    opacity: 0;
+  }
+}
+@keyframes explosionGif {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(4);
+  }
+}
+.exploding {
+  animation:
+    explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
+    shockwave 1.2s ease-out forwards,
+    particles 1.2s ease-out forwards,
+    flash 0.4s ease-in-out;
+  background:
+    radial-gradient(circle, #fff 0%, #ffff00 20%, #ff8c00 40%, #ff4500 60%, #ff0000 80%, #8b0000 100%) !important;
+  border-color: transparent !important;
+  z-index: 1000;
+  position: relative;
+}
+.exploding span {
+  animation: textGlitch 0.8s ease-out forwards;
+}
+.explosion-overlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: screen;
+  animation: explosionGif 1.2s ease-out forwards;
+}
+.explosion-overlay img {
+  width: 400px;
+  height: 400px;
+  object-fit: contain;
+}
+.speaker-card {
+  transition: all 0.3s ease;
+}
+</style>
+<div class="slidev-layout default">
+  <h1 class="text-center">Timer's Report on Evaluators</h1>
+ 
+  <!-- Status Message -->
+  <div
+    class="p-4 rounded-md mt-6"
+    :class="{
+      'bg-blue-100 text-blue-800': statusType === 'info',
+      'bg-green-100 text-green-800': statusType === 'success',
+      'bg-red-100 text-red-800': statusType === 'error'
+    }"
+  >
+    Status: {{ statusMessage }}
+  </div>
+ 
+  <!-- Speaker List -->
+  <template v-if="speakerOptions.length > 0">
+    <div class="mt-8 flex flex-wrap gap-3 justify-center items-stretch" style="max-width: 100%;">
+      <div
+        v-for="speaker in speakerOptions"
+        :key="speaker"
+        class="flex flex-col items-center justify-between p-4 border border-gray-300 rounded-xl shadow-sm bg-white relative overflow-visible speaker-card"
+        :class="{
+          'exploding': explodingSpeaker === speaker
+        }"
+        :style="{
+          flex: speakerOptions.length <= 4 ? '0 0 calc(50% - 0.75rem)' : '0 0 calc(33.333% - 0.75rem)',
+          minWidth: speakerOptions.length > 6 ? '180px' : '220px',
+          maxWidth: speakerOptions.length <= 2 ? '400px' : speakerOptions.length <= 4 ? '350px' : '300px'
+        }"
+      >
+        <span 
+          class="text-center font-semibold mb-3"
+          :style="{
+            fontSize: speakerOptions.length <= 4 ? '1.25rem' : speakerOptions.length <= 6 ? '1.125rem' : '1rem'
+          }"
+        >{{ speaker }}</span>
+        <button
+          @click="disqualifySpeaker(speaker, $event)"
+          :disabled="isLoading"
+          class="rounded-lg text-white font-bold transition duration-150 ease-in-out w-full"
+          :class="{
+            'bg-red-600 hover:bg-red-700': !isLoading,
+            'bg-gray-400 cursor-not-allowed': isLoading
+          }"
+          :style="{
+            fontSize: speakerOptions.length > 6 ? '0.875rem' : '1rem',
+            padding: speakerOptions.length > 6 ? '0.5rem 0.75rem' : '0.5rem 1.25rem'
+          }"
+        >
+          💣 Disqualify
+        </button>
+      </div>
+    </div>
+  </template>
+ 
+  <template v-else-if="!isLoading && statusType === 'error'">
+    <p class="mt-8 text-xl text-red-600">
+      Could not load speaker options. Check your script URL and logs.
+    </p>
+  </template>
+ 
+  <!-- Explosion GIF Overlay -->
+  <div
+    v-if="explodingSpeaker"
+    class="explosion-overlay"
+    :style="{
+      left: explosionPosition.x + 'px',
+      top: explosionPosition.y + 'px'
+    }"
+  >
+    <img
+      src="https://media.giphy.com/media/X92pmIty2ZJp6/giphy.gif"
+      alt="Nuclear Explosion"
+    />
+  </div>
+</div>
+
+---
+style: "background-color: #ADD8E6;"
+layout: statement
+---
+
+<img src="/tmi_logo.png" alt="Logo"
+     style="position: absolute; top: 1rem; left: 1rem; max-height: 100px;" />
+
+# Best Evaluator Voting
+
+<QRCode class='mx-auto pt-10' value="https://docs.google.com/forms/d/e/1FAIpQLSe5CE7i95lf1z67tu31k4FX8TXMhTVSWIesMcFUvbIWovdVqQ/viewform?usp=dialog" :size="350" render-as="svg" />
+
 
 ---
 layout: center
