@@ -53,6 +53,8 @@ class: "text-center"
 <h1>Guest are requested to register</h1>
 <QRCode class='mx-auto pt-10' value="https://sli.dev" :size="350" render-as="svg" />
 
+<span>Go to <b>https://haakoaho.github.io/OtmUrls/</b> if you do not want to use QR codes</span>
+
 ---
 style: "background-color: #ADD8E6;"
 class: "text-center"
@@ -76,26 +78,6 @@ const agenda = window.__SV_AGENDA
 upload agenda.json on the first slide.
 </div>
 
----
-style: "background-color: #00008B"
-class: "text-light"
----
-
-<img src ='/tmi_logo.png' alt = '' class='float-right' style = 'max-height:75px'>
-<script setup>const agenda = window.__SV_AGENDA</script>
-
-# Agenda
-
-| Time  | Activity                                                     |
-| ----- | ------------------------------------------------------------ |
-| 17:45 | Gathering and Networking                                     |
-| 18:00 | President starts and welcome guests                          |
-| 18:05 | Toastmaster of the Evening introduces the theme and the team |
-| 18:18 | Prepared speeches                                            |
-| 18:50 | Break                                                        |
-| 19:00 | Table Topics                                                 |
-| 19:30 | Evaluations                                                  |
-| 19:50 | Reports, Awards and Thanks                                   |
 
 ---
 class: 'text-center'
@@ -155,6 +137,28 @@ style: "background-color: #ADD8E6;"
 <h2> {{ agenda.value.structured_roles?.Toastmaster?.presenter || 'TBA' }}</h2>
 </div>
 <div v-else class="text-sm text-gray-500">TBA</div>
+
+
+---
+style: "background-color: #00008B"
+class: "text-light"
+---
+
+<img src ='/tmi_logo.png' alt = '' class='float-right' style = 'max-height:75px'>
+<script setup>const agenda = window.__SV_AGENDA</script>
+
+# Agenda
+
+| Time  | Activity                                                     |
+| ----- | ------------------------------------------------------------ |
+| 17:45 | Gathering and Networking                                     |
+| 18:00 | President starts and welcome guests                          |
+| 18:05 | Toastmaster of the Evening introduces the theme and the team |
+| 18:18 | Prepared speeches                                            |
+| 18:50 | Break                                                        |
+| 19:00 | Table Topics                                                 |
+| 19:30 | Evaluations                                                  |
+| 19:50 | Reports, Awards and Thanks                                   |
 
 ---
 style: "background-color: #ADD8E6;"
