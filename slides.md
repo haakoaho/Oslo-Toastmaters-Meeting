@@ -748,264 +748,327 @@ layout: default
 style: "background-color: #ADD8E6;"
 ---
 
-<img src="/tmi_logo.png" alt="Logo"
-     style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;" />
+<img
+  src="/tmi_logo.png"
+  alt="Logo"
+  style="position: absolute; top: 1rem; right: 1rem; max-height: 100px;"
+/>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted } from 'vue'
 
-if (!window.__SV_AGENDA) window.__SV_AGENDA = reactive({ value: null })
-const agenda = window.__SV_AGENDA
+const isPresenter = window.location.pathname.includes('/presenter')
 
-const VOTING_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
-const REGISTRATION_URL = 'https://script.google.com/macros/s/AKfycbzt5y17AZWLcPsPV21lYPbWJubbiGtKa5vb_Qsir8RDJ6EyjJGW-TrYRRzwNmHiWP-s/exec';
+const channel = new BroadcastChannel('table-topics')
+const currentSpeaker = ref('')
+const newSpeaker = ref('')
+const isBusy = ref(false)
+const statusMessage = ref('')
+const statusType = ref('info')
+const showQR = ref(false)
 
-const currentSpeaker = ref('');
-const newSpeaker = ref('');
-const statusMessage = ref('Ready to add speakers');
-const statusType = ref('info');
-const isBusy = ref(false);
+const VOTING_URL =
+  'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec'
 
-function addSpeaker() {
-  if (isBusy.value) return;
-  isBusy.value = true;
+const REGISTRATION_URL =
+  'https://script.google.com/macros/s/AKfycbzt5y17AZWLcPsPV21lYPbWJubbiGtKa5vb_Qsir8RDJ6EyjJGW-TrYRRzwNmHiWP-s/exec'
 
-  const name = newSpeaker.value.trim();
-  if (!name) {
-    statusMessage.value = 'Please enter a speaker name.';
-    statusType.value = 'warning';
-    isBusy.value = false;
-    return;
-  }
+function setSpeaker(name) {
+  currentSpeaker.value = name
+  channel.postMessage({ type: 'SET_SPEAKER', speaker: name })
+}
 
-  currentSpeaker.value = name;
-  newSpeaker.value = '';
-  statusMessage.value = `✅ Speaker Set: "${name}"`;
-  statusType.value = 'success';
+function clearSpeaker() {
+  currentSpeaker.value = ''
+  channel.postMessage({ type: 'CLEAR_SPEAKER' })
+}
 
+function toggleQR() {
+  showQR.value = !showQR.value
+  channel.postMessage({ type: 'TOGGLE_QR', show: showQR.value })
+}
+
+async function addSpeaker() {
+  if (isBusy.value || !newSpeaker.value.trim()) return
+  isBusy.value = true
+
+  const name = newSpeaker.value.trim()
+  setSpeaker(name)
+  newSpeaker.value = ''
+  statusMessage.value = `✅ Speaker set: ${name}`
+  statusType.value = 'success'
+
+  // Fire and forget - no-cors mode doesn't return response
   fetch(VOTING_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'add', speaker: name }),
-    mode: 'no-cors'
-  }).finally(() => {
-    isBusy.value = false;
-  });
+    mode: 'no-cors',
+  }).catch(() => {
+    // Silently fail - no-cors doesn't allow reading responses
+  })
+
+  isBusy.value = false
 }
 
 async function addRandomSpeaker() {
-  if (isBusy.value) return;
-  isBusy.value = true;
+  if (isBusy.value) return
+  isBusy.value = true
 
   try {
-    statusMessage.value = 'Fetching random speaker...';
-    statusType.value = 'info';
+    statusMessage.value = '🎲 Selecting random speaker...'
+    statusType.value = 'info'
 
-    const response = await fetch(REGISTRATION_URL);
-    const data = await response.json();
-    const speaker = data?.selected || data?.speaker || data?.name;
+    const res = await fetch(REGISTRATION_URL)
+    const data = await res.json()
+    const speaker = data?.selected || data?.speaker || data?.name
+    if (!speaker) throw new Error()
 
-    if (!speaker) {
-      statusMessage.value = '⚠️ No speaker data received';
-      statusType.value = 'warning';
-      return;
-    }
+    setSpeaker(speaker)
+    statusMessage.value = `✅ Random speaker: ${speaker}`
+    statusType.value = 'success'
 
-    currentSpeaker.value = speaker;
-    statusMessage.value = `✅ Random Speaker: "${speaker}"`;
-    statusType.value = 'success';
-
-    await fetch(VOTING_URL, {
+    // Fire and forget - no-cors mode doesn't return response
+    fetch(VOTING_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'add', speaker }),
-      mode: 'no-cors'
-    });
-
-  } catch (error) {
-    statusMessage.value = '❌ Error fetching random speaker';
-    statusType.value = 'error';
-    console.error(error);
+      mode: 'no-cors',
+    }).catch(() => {
+      // Silently fail - no-cors doesn't allow reading responses
+    })
+  } catch {
+    statusMessage.value = '❌ Failed to select random speaker'
+    statusType.value = 'error'
   } finally {
-    isBusy.value = false;
+    isBusy.value = false
   }
 }
 
-function toggleView() {
-  currentSpeaker.value = '';
-}
-
 onMounted(() => {
-  statusMessage.value = 'Ready to add Table Topics speakers';
-  statusType.value = 'info';
-});
+  channel.onmessage = (event) => {
+    if (event.data.type === 'SET_SPEAKER')
+      currentSpeaker.value = event.data.speaker
+
+    if (event.data.type === 'CLEAR_SPEAKER')
+      currentSpeaker.value = ''
+
+    if (event.data.type === 'TOGGLE_QR')
+      showQR.value = event.data.show
+  }
+
+  // Keyboard shortcuts for presenter
+  if (isPresenter) {
+    window.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + R for random speaker
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault()
+        addRandomSpeaker()
+      }
+      // Ctrl/Cmd + S for set speaker
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        addSpeaker()
+      }
+      // Ctrl/Cmd + C for clear speaker
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault()
+        clearSpeaker()
+      }
+    })
+  }
+})
 </script>
 
 <style scoped>
-.rules {
-  text-align: left;
-  margin-bottom: 2rem;
-}
-
-.rules h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.rules ul {
-  list-style: disc;
-  padding-left: 1.5rem;
-  line-height: 0.8;
-  font-size: 1rem;
-}
-
-.input-section {
-  margin-top: 2rem;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-input {
-  width: 250px;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.4rem;
-  font-size: 0.9rem;
+.hidden {
+  display: none !important;
 }
 
 button {
-  font-size: 0.9rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 0.4rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
   font-weight: 600;
-  color: #fff;
-  transition: background 0.15s ease-in-out;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-button.add {
-  background-color: #16a34a;
-}
-button.add:hover {
-  background-color: #15803d;
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-button.toggle {
-  background-color: #2563eb;
+button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-button.toggle:hover {
-  background-color: #1d4ed8;
+
+.add {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.add:hover:not(:disabled) {
+  background: linear-gradient(135deg, #15803d 0%, #14532d 100%);
+}
+
+.random {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.random:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.clear {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.clear:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+}
+
+.toggle-qr {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.toggle-qr:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
-.status-box {
-  margin-top: 1rem;
-  padding: 0.6rem 1rem;
-  border-radius: 0.4rem;
-  font-size: 0.9rem;
-  width: fit-content;
-}
-
-.status-info { background: #dbeafe; color: #1e3a8a; }
-.status-success { background: #dcfce7; color: #166534; }
-.status-error { background: #fee2e2; color: #991b1b; }
-.status-warning { background: #fef9c3; color: #854d0e; }
-
-.container {
+.presenter-root {
+  padding: 2rem;
   display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.admin-box {
-  flex: 1;
+.presenter-root input {
+  width: 260px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  transition: border-color 0.2s ease;
 }
 
-.registration-box {
-  width: 100%;
+.presenter-root input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.tip {
+  background: #f0f9ff;
+  border-left: 4px solid #2563eb;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  color: #1e40af;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.tip strong {
+  color: #1e3a8a;
+}
+
+.fullscreen-root {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4rem;
   text-align: center;
-  flex-direction: column;
 }
 
-.current-speaker {
-  flex: 1;
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6rem;
-  font-size: 3rem;
+.rules {
+  text-align: left;
+  max-width: 520px;
+}
+
+.rules ul {
+  padding-left: 1.2rem;
+  line-height: 1.3;
+}
+
+.speaker {
+  font-size: 3.5rem;
   font-weight: 700;
 }
 
-.current-speaker h2 {
-  font-size: 1.5rem;
+.registration-box {
+  text-align: center;
 }
 
-.qr-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+.qr-section h2 {
+  margin-bottom: 1rem;
 }
 </style>
 
-<div class="container" v-if="currentSpeaker.length === 0">
-  <div class="admin-box">
-    <h1>Table Topics</h1>
-    <h2>
-      Table Topics Master:
-      {{ agenda.value?.structured_roles?.TableTopicMaster?.presenter ?? 'TBA' }}
-    </h2>
-    <div class="input-section">
-      <input
-        v-model="newSpeaker"
-        type="text"
-        placeholder="Speaker"
-        :disabled="isBusy"
-        @keyup.enter="addSpeaker"
-      />
-      <button class="add" :disabled="isBusy" @click="addSpeaker">
-        🎤 Set Speaker
-      </button>
-      <button class="add" :disabled="isBusy" @click="addRandomSpeaker">
-        🎲 Random Speaker
-      </button>
-    </div>
-    
-  <div class="rules">
-      <h1>Rules 📋</h1>
-      <ul>
-        <li>Max. 30 seconds for thinking</li>
-        <li>Introduction: name - topic - topic - name</li>
-        <li>🟩 Green Card at 1:00</li>
-        <li>🟨 Yellow Card at 1:30</li>
-        <li>🟥 Red Card at 2:00</li>
-        <li>Guests encouraged to participate 🙋‍♀️🙋‍♂️</li>
-      </ul>
-    </div>
-  <div
-      class="status-box"
-      :class="{
-        'status-info': statusType === 'info',
-        'status-success': statusType === 'success',
-        'status-error': statusType === 'error',
-        'status-warning': statusType === 'warning'
-      }"
-    >
-      {{ statusMessage }}
+<div
+  class="presenter-root"
+  :class="{ hidden: !isPresenter }"
+>
+  <h1>🎤 Table Topics – Presenter Control</h1>
+
+  <div class="tip">
+    <strong>⌨️ Keyboard shortcuts:</strong> <strong>Ctrl+S</strong> to set speaker • <strong>Ctrl+R</strong> for random • <strong>Ctrl+C</strong> to clear
+  </div>
+
+  <input
+    v-model="newSpeaker"
+    placeholder="Speaker name"
+    @keyup.enter="addSpeaker"
+    :disabled="isBusy"
+  />
+
+  <div style="display:flex; gap:1rem;">
+    <button class="add" @click="addSpeaker">Set (Ctrl+S)</button>
+    <button class="random" @click="addRandomSpeaker">Random (Ctrl+R)</button>
+    <button class="clear" @click="clearSpeaker">Clear (Ctrl+C)</button>
+  </div>
+
+  <div style="display:flex; gap:1rem; margin-top:1rem;">
+    <button class="toggle-qr" @click="toggleQR">
+      {{ showQR ? 'Hide QR Code' : 'Show QR Code' }}
+    </button>
+  </div>
+
+  <p>{{ statusMessage }}</p>
+</div>
+
+<div
+  class="fullscreen-root"
+  :class="{ hidden: isPresenter }"
+>
+  <div v-if="currentSpeaker" class="speaker">
+    {{ currentSpeaker }}
+    <div style="font-size:1.6rem; font-weight:400;">
+      Table Topics Speaker
     </div>
   </div>
 
-  <div class="registration-box">
+  <div v-else class="rules">
+    <h1>Table Topics 📋</h1>
+    <ul>
+      <li>30 seconds to think</li>
+      <li>Intro: name – topic – topic – name</li>
+      <li>🟩 Green at 1:00</li>
+      <li>🟨 Yellow at 1:30</li>
+      <li>🟥 Red at 2:00</li>
+      <li>Guests are encouraged to participate🙋‍♀️🙋‍♂️</li>
+    </ul>
+  </div>
+
+  <div v-if="showQR" class="registration-box">
     <div class="qr-section">
       <h2>Scan QR Code to join</h2>
       <QRCode
@@ -1016,14 +1079,6 @@ button:disabled {
       />
     </div>
   </div>
-</div>
-
-<div v-else class="current-speaker">
-  <h1>{{ currentSpeaker }}</h1>
-  <h2>Table Topics Speaker</h2>
-  <button class="toggle" @click="toggleView">
-    👈 Select Next Speaker
-  </button>
 </div>
 
 ---
