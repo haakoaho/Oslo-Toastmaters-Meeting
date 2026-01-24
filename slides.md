@@ -409,13 +409,17 @@ style: "background-color: #ADD8E6;"
 
 <script setup>
 import { ref, onMounted } from 'vue';
+
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxUu5xSp9PGSkmJp21XiR6Zh31s_C84S_RqpLunrrqWiGt-AXlg30VBcZz9Ka3SJxUsWw/exec';
+const channel = new BroadcastChannel('disqualify-speaker');
+
 const speakerOptions = ref([]);
 const statusMessage = ref('Loading options...');
 const statusType = ref('info');
 const isLoading = ref(false);
 const explodingSpeaker = ref(null);
 const explosionPosition = ref({ x: 0, y: 0 });
+
 /** Fetch current list of speakers */
 async function fetchOptions() {
   isLoading.value = true;
@@ -441,18 +445,32 @@ async function fetchOptions() {
     isLoading.value = false;
   }
 }
+
 /** Disqualify a speaker — fire and forget delete request */
 async function disqualifySpeaker(speaker, event) {
   // Get the position of the clicked button for explosion placement
   const rect = event.target.getBoundingClientRect();
-  explosionPosition.value = {
+  const position = {
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2
   };
  
-  // Trigger explosion animation
+  // Broadcast explosion event to all windows
+  channel.postMessage({ 
+    type: 'DISQUALIFY', 
+    speaker, 
+    position 
+  });
+  
+  // Trigger local explosion
+  triggerExplosion(speaker, position);
+}
+
+/** Trigger explosion animation and update state */
+async function triggerExplosion(speaker, position) {
+  explosionPosition.value = position;
   explodingSpeaker.value = speaker;
- 
+  
   isLoading.value = true;
   statusMessage.value = `Disqualifying ${speaker}...`;
   statusType.value = 'info';
@@ -464,6 +482,8 @@ async function disqualifySpeaker(speaker, event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete', speaker }),
       mode: 'no-cors'
+    }).catch(() => {
+      // Silently fail - no-cors doesn't allow reading responses
     });
    
     // Wait for explosion animation
@@ -483,8 +503,19 @@ async function disqualifySpeaker(speaker, event) {
     isLoading.value = false;
   }
 }
-onMounted(fetchOptions);
+
+onMounted(() => {
+  fetchOptions();
+  
+  // Listen for disqualification events from other windows
+  channel.onmessage = (event) => {
+    if (event.data.type === 'DISQUALIFY') {
+      triggerExplosion(event.data.speaker, event.data.position);
+    }
+  };
+});
 </script>
+
 <style scoped>
 @keyframes explode {
   0% {
@@ -512,6 +543,7 @@ onMounted(fetchOptions);
     filter: brightness(0) saturate(0);
   }
 }
+
 @keyframes shockwave {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
@@ -529,6 +561,7 @@ onMounted(fetchOptions);
                 0 0 200px 100px rgba(255, 165, 0, 0);
   }
 }
+
 @keyframes particles {
   0% {
     box-shadow:
@@ -559,6 +592,7 @@ onMounted(fetchOptions);
     filter: blur(15px);
   }
 }
+
 @keyframes flash {
   0%, 20%, 40%, 60%, 80%, 100% {
     opacity: 1;
@@ -567,6 +601,7 @@ onMounted(fetchOptions);
     opacity: 0.3;
   }
 }
+
 @keyframes textGlitch {
   0% {
     transform: translate(0);
@@ -593,6 +628,7 @@ onMounted(fetchOptions);
     opacity: 0;
   }
 }
+
 @keyframes explosionGif {
   0% {
     transform: translate(-50%, -50%) scale(0);
@@ -611,6 +647,7 @@ onMounted(fetchOptions);
     transform: translate(-50%, -50%) scale(4);
   }
 }
+
 .exploding {
   animation:
     explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
@@ -623,9 +660,11 @@ onMounted(fetchOptions);
   z-index: 1000;
   position: relative;
 }
+
 .exploding span {
   animation: textGlitch 0.8s ease-out forwards;
 }
+
 .explosion-overlay {
   position: fixed;
   pointer-events: none;
@@ -633,15 +672,18 @@ onMounted(fetchOptions);
   mix-blend-mode: screen;
   animation: explosionGif 1.2s ease-out forwards;
 }
+
 .explosion-overlay img {
   width: 400px;
   height: 400px;
   object-fit: contain;
 }
+
 .speaker-card {
   transition: all 0.3s ease;
 }
 </style>
+
 <div class="slidev-layout default">
   <h1 class="text-center">Timer's Report on Speakers</h1>
  
@@ -719,7 +761,6 @@ onMounted(fetchOptions);
     />
   </div>
 </div>
-
 ---
 layout: center
 style: "background-color: #ADD8E6;"
@@ -1091,6 +1132,8 @@ import { ref } from 'vue';
 import { onSlideEnter } from '@slidev/client';
 
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbye3kDgEZcBnyl-bK09cbmRmxFpueFdVi43gQv92EWP8wL1soKtq-B913_F_XhiJOZLAg/exec';
+const channel = new BroadcastChannel('table-topics-timer');
+
 const speakerOptions = ref([]);
 const statusMessage = ref('Waiting for slide to load...');
 const statusType = ref('info');
@@ -1128,12 +1171,25 @@ async function fetchOptions() {
 async function disqualifySpeaker(speaker, event) {
   // Get the position of the clicked button for explosion placement
   const rect = event.target.getBoundingClientRect();
-  explosionPosition.value = {
+  const position = {
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2
   };
  
-  // Trigger explosion animation
+  // Broadcast explosion event to all windows
+  channel.postMessage({ 
+    type: 'DISQUALIFY', 
+    speaker, 
+    position 
+  });
+  
+  // Trigger local explosion
+  triggerExplosion(speaker, position);
+}
+
+/** Trigger explosion animation and update state */
+async function triggerExplosion(speaker, position) {
+  explosionPosition.value = position;
   explodingSpeaker.value = speaker;
  
   isLoading.value = true;
@@ -1147,6 +1203,8 @@ async function disqualifySpeaker(speaker, event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete', speaker }),
       mode: 'no-cors'
+    }).catch(() => {
+      // Silently fail - no-cors doesn't allow reading responses
     });
    
     // Wait for explosion animation
@@ -1171,6 +1229,13 @@ async function disqualifySpeaker(speaker, event) {
 onSlideEnter(() => {
   speakerOptions.value = []; // Clear previous speakers
   fetchOptions();
+  
+  // Listen for disqualification events from other windows
+  channel.onmessage = (event) => {
+    if (event.data.type === 'DISQUALIFY') {
+      triggerExplosion(event.data.speaker, event.data.position);
+    }
+  };
 });
 </script>
 
@@ -1201,6 +1266,7 @@ onSlideEnter(() => {
     filter: brightness(0) saturate(0);
   }
 }
+
 @keyframes shockwave {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
@@ -1218,6 +1284,7 @@ onSlideEnter(() => {
                 0 0 200px 100px rgba(255, 165, 0, 0);
   }
 }
+
 @keyframes particles {
   0% {
     box-shadow:
@@ -1248,6 +1315,7 @@ onSlideEnter(() => {
     filter: blur(15px);
   }
 }
+
 @keyframes flash {
   0%, 20%, 40%, 60%, 80%, 100% {
     opacity: 1;
@@ -1256,6 +1324,7 @@ onSlideEnter(() => {
     opacity: 0.3;
   }
 }
+
 @keyframes textGlitch {
   0% {
     transform: translate(0);
@@ -1282,6 +1351,7 @@ onSlideEnter(() => {
     opacity: 0;
   }
 }
+
 @keyframes explosionGif {
   0% {
     transform: translate(-50%, -50%) scale(0);
@@ -1300,6 +1370,7 @@ onSlideEnter(() => {
     transform: translate(-50%, -50%) scale(4);
   }
 }
+
 .exploding {
   animation:
     explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
@@ -1312,9 +1383,11 @@ onSlideEnter(() => {
   z-index: 1000;
   position: relative;
 }
+
 .exploding span {
   animation: textGlitch 0.8s ease-out forwards;
 }
+
 .explosion-overlay {
   position: fixed;
   pointer-events: none;
@@ -1322,11 +1395,13 @@ onSlideEnter(() => {
   mix-blend-mode: screen;
   animation: explosionGif 1.2s ease-out forwards;
 }
+
 .explosion-overlay img {
   width: 400px;
   height: 400px;
   object-fit: contain;
 }
+
 .speaker-card {
   transition: all 0.3s ease;
 }
@@ -1513,13 +1588,17 @@ style: "background-color: #ADD8E6;"
 
 <script setup>
 import { ref, onMounted } from 'vue';
+
 const ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbzasaenEuAMB_11pQGr23lHVE_j_VSlhhgITDDReQd2MPQ9C0QfSChmX_5ZLlHoadyu/exec';
+const channel = new BroadcastChannel('evaluators-timer');
+
 const speakerOptions = ref([]);
 const statusMessage = ref('Loading options...');
 const statusType = ref('info');
 const isLoading = ref(false);
 const explodingSpeaker = ref(null);
 const explosionPosition = ref({ x: 0, y: 0 });
+
 /** Fetch current list of speakers */
 async function fetchOptions() {
   isLoading.value = true;
@@ -1545,16 +1624,30 @@ async function fetchOptions() {
     isLoading.value = false;
   }
 }
+
 /** Disqualify a speaker — fire and forget delete request */
 async function disqualifySpeaker(speaker, event) {
   // Get the position of the clicked button for explosion placement
   const rect = event.target.getBoundingClientRect();
-  explosionPosition.value = {
+  const position = {
     x: rect.left + rect.width / 2,
     y: rect.top + rect.height / 2
   };
  
-  // Trigger explosion animation
+  // Broadcast explosion event to all windows
+  channel.postMessage({ 
+    type: 'DISQUALIFY', 
+    speaker, 
+    position 
+  });
+  
+  // Trigger local explosion
+  triggerExplosion(speaker, position);
+}
+
+/** Trigger explosion animation and update state */
+async function triggerExplosion(speaker, position) {
+  explosionPosition.value = position;
   explodingSpeaker.value = speaker;
  
   isLoading.value = true;
@@ -1568,6 +1661,8 @@ async function disqualifySpeaker(speaker, event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete', speaker }),
       mode: 'no-cors'
+    }).catch(() => {
+      // Silently fail - no-cors doesn't allow reading responses
     });
    
     // Wait for explosion animation
@@ -1587,8 +1682,19 @@ async function disqualifySpeaker(speaker, event) {
     isLoading.value = false;
   }
 }
-onMounted(fetchOptions);
+
+onMounted(() => {
+  fetchOptions();
+  
+  // Listen for disqualification events from other windows
+  channel.onmessage = (event) => {
+    if (event.data.type === 'DISQUALIFY') {
+      triggerExplosion(event.data.speaker, event.data.position);
+    }
+  };
+});
 </script>
+
 <style scoped>
 @keyframes explode {
   0% {
@@ -1616,6 +1722,7 @@ onMounted(fetchOptions);
     filter: brightness(0) saturate(0);
   }
 }
+
 @keyframes shockwave {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.8),
@@ -1633,6 +1740,7 @@ onMounted(fetchOptions);
                 0 0 200px 100px rgba(255, 165, 0, 0);
   }
 }
+
 @keyframes particles {
   0% {
     box-shadow:
@@ -1663,6 +1771,7 @@ onMounted(fetchOptions);
     filter: blur(15px);
   }
 }
+
 @keyframes flash {
   0%, 20%, 40%, 60%, 80%, 100% {
     opacity: 1;
@@ -1671,6 +1780,7 @@ onMounted(fetchOptions);
     opacity: 0.3;
   }
 }
+
 @keyframes textGlitch {
   0% {
     transform: translate(0);
@@ -1697,6 +1807,7 @@ onMounted(fetchOptions);
     opacity: 0;
   }
 }
+
 @keyframes explosionGif {
   0% {
     transform: translate(-50%, -50%) scale(0);
@@ -1715,6 +1826,7 @@ onMounted(fetchOptions);
     transform: translate(-50%, -50%) scale(4);
   }
 }
+
 .exploding {
   animation:
     explode 1.2s cubic-bezier(0.36, 0, 0.66, -0.56) forwards,
@@ -1727,9 +1839,11 @@ onMounted(fetchOptions);
   z-index: 1000;
   position: relative;
 }
+
 .exploding span {
   animation: textGlitch 0.8s ease-out forwards;
 }
+
 .explosion-overlay {
   position: fixed;
   pointer-events: none;
@@ -1737,15 +1851,18 @@ onMounted(fetchOptions);
   mix-blend-mode: screen;
   animation: explosionGif 1.2s ease-out forwards;
 }
+
 .explosion-overlay img {
   width: 400px;
   height: 400px;
   object-fit: contain;
 }
+
 .speaker-card {
   transition: all 0.3s ease;
 }
 </style>
+
 <div class="slidev-layout default">
   <h1 class="text-center">Timer's Report on Evaluators</h1>
  
